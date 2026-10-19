@@ -1,0 +1,2 @@
+image: node:24-bookworm-slim
+# Runner configuration and tool availability must be verified in the provisioned project.

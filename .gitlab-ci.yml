@@ -1,0 +1,23 @@
+image: node:24-bookworm-slim
+stages: [verify, package]
+cache:
+  key:
+    files: [package-lock.json]
+  paths: [.npm/]
+verify:
+  stage: verify
+  script:
+    - npm ci --cache .npm --prefer-offline
+    - npm test
+    - npm run build
+  artifacts:
+    paths: [dist/]
+    expire_in: 7 days
+package:
+  stage: package
+  script:
+    - npm ci --cache .npm --prefer-offline
+    - npm pack
+  artifacts:
+    paths: ["*.tgz"]
+    expire_in: 7 days

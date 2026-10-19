@@ -1,0 +1,36 @@
+name: maya-v1
+services:
+  company-a:
+    build: ../../company-a
+    restart: unless-stopped
+    ports: ["127.0.0.1:4100:4100"]
+    environment:
+      ENABLE_DEMO_FAULTS: "true"
+      SANDBOX_TOKEN: ${COMPANY_A_TOKEN:?Run ./start.sh first}
+    volumes: ["company-a-data:/data"]
+  company-b:
+    build: ../../company-b
+    restart: unless-stopped
+    ports: ["127.0.0.1:4300:4300"]
+    environment:
+      ENABLE_DEMO_FAULTS: "true"
+      SANDBOX_TOKEN: ${COMPANY_B_TOKEN:?Run ./start.sh first}
+    volumes: ["company-b-data:/data"]
+  maya:
+    build: ..
+    restart: unless-stopped
+    ports: ["127.0.0.1:4200:4200"]
+    depends_on:
+      company-a: {condition: service_healthy}
+      company-b: {condition: service_healthy}
+    environment:
+      MAYA_ACCESS_TOKEN: ${MAYA_ACCESS_TOKEN:?Run ./start.sh first}
+      COMPANY_A_URL: http://company-a:4100
+      COMPANY_A_TOKEN: ${COMPANY_A_TOKEN}
+      COMPANY_B_URL: http://company-b:4300
+      COMPANY_B_TOKEN: ${COMPANY_B_TOKEN}
+    volumes: ["maya-data:/data"]
+volumes:
+  company-a-data:
+  company-b-data:
+  maya-data:

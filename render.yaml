@@ -1,0 +1,81 @@
+# Free demo services. SQLite on free Render instances is ephemeral.
+# Durable local deployment: parent workspace compose.yaml.
+services:
+  - type: web
+    name: maya-company-a-jassi
+    runtime: node
+    repo: https://github.com/Jassi2004/transcend-company-a
+    branch: main
+    plan: free
+    region: singapore
+    buildCommand: npm ci --include=dev && npm run build && npm prune --omit=dev
+    startCommand: node dist/server/index.js
+    healthCheckPath: /api/health
+    autoDeployTrigger: checksPass
+    envVars:
+      - key: NODE_VERSION
+        value: 24.12.0
+      - key: HOST
+        value: 0.0.0.0
+      - key: DATABASE_PATH
+        value: /tmp/company-a.sqlite
+      - key: ENABLE_DEMO_FAULTS
+        value: "true"
+      - key: SANDBOX_TOKEN
+        generateValue: true
+  - type: web
+    name: maya-company-b-jassi
+    runtime: python
+    repo: https://github.com/Jassi2004/transcend-company-b
+    branch: main
+    plan: free
+    region: singapore
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /api/health
+    autoDeployTrigger: checksPass
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.11
+      - key: DATABASE_PATH
+        value: /tmp/company-b.sqlite
+      - key: ENABLE_DEMO_FAULTS
+        value: "true"
+      - key: SANDBOX_TOKEN
+        generateValue: true
+  - type: web
+    name: maya-yard-jassi
+    runtime: node
+    repo: https://github.com/Jassi2004/transcend-maya
+    branch: main
+    plan: free
+    region: singapore
+    buildCommand: npm ci --include=dev && npm run build && npm prune --omit=dev
+    startCommand: node dist/server/cli.js
+    healthCheckPath: /api/health
+    autoDeployTrigger: checksPass
+    envVars:
+      - key: NODE_VERSION
+        value: 24.12.0
+      - key: HOST
+        value: 0.0.0.0
+      - key: DATABASE_PATH
+        value: /tmp/maya.sqlite
+      - key: SECURE_COOKIE
+        value: "true"
+      - key: MAYA_ACCESS_TOKEN
+        generateValue: true
+      - key: COMPANY_A_URL
+        value: https://maya-company-a-jassi.onrender.com
+      - key: COMPANY_B_URL
+        value: https://maya-company-b-jassi.onrender.com
+      - key: COMPANY_A_TOKEN
+        fromService:
+          type: web
+          name: maya-company-a-jassi
+          envVarKey: SANDBOX_TOKEN
+      - key: COMPANY_B_TOKEN
+        fromService:
+          type: web
+          name: maya-company-b-jassi
+          envVarKey: SANDBOX_TOKEN

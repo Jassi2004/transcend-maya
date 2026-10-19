@@ -49,6 +49,7 @@ test("incident, approval, memory review, repeat recovery, and stale-context reje
     page.getByRole("heading", { name: "Stale lesson rejected" }),
   ).toBeVisible();
   await page.getByRole("button", { name: "Reject proposal" }).click();
+  await page.evaluate(() => window.scrollTo(0, 0));
   await page.screenshot({
     path: "test-results/maya-desktop.png",
     fullPage: true,

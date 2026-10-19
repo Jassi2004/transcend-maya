@@ -85,7 +85,7 @@ export function createApp(
       return res.status(401).json({ error: "Invalid sandbox access key." });
     res.setHeader(
       "Set-Cookie",
-      `maya_session=${cookieValue}; HttpOnly; SameSite=Strict; Path=/; Max-Age=43200${options.secureCookie ? "; Secure" : ""}`,
+      `maya_session=${cookieValue}; HttpOnly; SameSite=Strict; Path=/; Max-Age=43200${options.secureCookie || req.get("x-forwarded-proto") === "https" ? "; Secure" : ""}`,
     );
     res.json({ ok: true });
   });

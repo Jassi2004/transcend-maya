@@ -220,6 +220,14 @@ test("API enforces operator access, same-origin writes and validation", async ()
       .post("/api/session")
       .send({ token: "operator-test-key" });
     assert.equal(login.status, 200);
+    assert.match(login.headers["set-cookie"][0], /HttpOnly/);
+    assert.match(login.headers["set-cookie"][0], /SameSite=Strict/);
+    assert.doesNotMatch(login.headers["set-cookie"][0], /; Secure/);
+    const httpsLogin = await request(app)
+      .post("/api/session")
+      .set("X-Forwarded-Proto", "https")
+      .send({ token: "operator-test-key" });
+    assert.match(httpsLogin.headers["set-cookie"][0], /; Secure/);
     const cookie = login.headers["set-cookie"][0].split(";")[0];
     assert.equal(
       (await request(app).get("/api/companies").set("Cookie", cookie)).status,

@@ -1,6 +1,7 @@
 import { test, expect } from "@playwright/test";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { randomUUID } from "node:crypto";
 let key = process.env.MAYA_ACCESS_TOKEN;
 if (!key) {
   try {
@@ -19,6 +20,7 @@ test("real TypeScript booking and Python support services recover through the sa
   const errors: string[] = [];
   page.on("pageerror", (e) => errors.push(e.message));
   await page.goto("/");
+  await expect(page.locator(".boot")).not.toBeVisible({ timeout: 15000 });
   const keyField = page.getByLabel("Sandbox access key");
   if (await keyField.isVisible()) {
     if (!key)
@@ -57,6 +59,7 @@ test("real TypeScript booking and Python support services recover through the sa
       company === "Company A"
         ? process.env.COMPANY_A_URL || "http://127.0.0.1:4100"
         : process.env.COMPANY_B_URL || "http://127.0.0.1:4300";
+    let affectedTicketId = "";
     if (company === "Company A") {
       const date = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
       const slots = await request.get(
@@ -67,11 +70,38 @@ test("real TypeScript booking and Python support services recover through the sa
           (s: { remaining: number }) => s.remaining === 0,
         ),
       ).toBeTruthy();
+      const rejected = await request.post(`${companyUrl}/api/bookings`, {
+        headers: { "Idempotency-Key": randomUUID() },
+        data: {
+          serviceId: "consultation",
+          name: "Demo Customer",
+          email: "demo@example.com",
+          date,
+          time: "09:00",
+          seats: 1,
+        },
+      });
+      expect(rejected.status()).toBe(409);
     } else {
       const classification = await request.get(
         `${companyUrl}/api/classify?severity=critical`,
       );
       expect((await classification.json()).priority).toBe("low");
+      const affected = await request.post(`${companyUrl}/api/tickets`, {
+        headers: { "Idempotency-Key": randomUUID() },
+        data: {
+          subject: "Critical incident during fault",
+          description:
+            "A synthetic critical customer incident during the controlled fault.",
+          requester: "Demo Customer",
+          email: "demo@example.com",
+          severity: "critical",
+        },
+      });
+      expect(affected.status()).toBe(201);
+      const body = await affected.json();
+      expect(body.priority).toBe("low");
+      affectedTicketId = body.id;
     }
     await page.getByRole("button", { name: "Approve exact repair" }).click();
     await expect(
@@ -80,6 +110,15 @@ test("real TypeScript booking and Python support services recover through the sa
       }),
     ).toBeVisible({ timeout: 90000 });
     await expect(page.locator(".live-checks .fail")).toHaveCount(0);
+    if (affectedTicketId) {
+      const response = await request.get(`${companyUrl}/api/overview`);
+      const body = await response.json();
+      expect(
+        body.tickets.find((t: { id: string }) => t.id === affectedTicketId)
+          .priority,
+      ).toBe("critical");
+    }
+    await page.evaluate(() => window.scrollTo(0, 0));
     await page.screenshot({
       path: `test-results/connected/${company === "Company A" ? "company-a-recovered" : "company-b-recovered"}.png`,
       fullPage: true,
@@ -112,5 +151,21 @@ test("real TypeScript booking and Python support services recover through the sa
       () => document.documentElement.scrollWidth <= innerWidth,
     ),
   ).toBeTruthy();
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await page.goto(process.env.COMPANY_A_URL || "http://127.0.0.1:4100");
+  await page.getByRole("button", { name: "New reservation" }).click();
+  await page.getByRole("dialog").getByRole("combobox").selectOption("workshop");
+  await page.getByRole("button", { name: "09:00" }).click();
+  await page.getByLabel("Your name").fill("HTTPS Demo");
+  await page.getByLabel("Email address").fill("https-demo@example.com");
+  await page.getByRole("button", { name: "Confirm reservation" }).click();
+  await expect(page.getByRole("dialog")).not.toBeVisible();
+  const row = page
+    .getByRole("row")
+    .filter({ hasText: "https-demo@example.com" })
+    .first();
+  await expect(row).toBeVisible();
+  await row.getByRole("button", { name: "Cancel", exact: true }).click();
+  await expect(row.getByText("cancelled", { exact: true })).toBeVisible();
   expect(errors).toEqual([]);
 });

@@ -1,0 +1,36 @@
+name: maya-demo
+services:
+  company-a:
+    image: ghcr.io/jassi2004/transcend-company-a:latest
+    restart: unless-stopped
+    ports: ["127.0.0.1:${COMPANY_A_PORT:-4100}:4100"]
+    environment:
+      ENABLE_DEMO_FAULTS: "true"
+      SANDBOX_TOKEN: ${COMPANY_A_TOKEN:?Run deploy/start.sh first}
+    volumes: ["company-a-data:/data"]
+  company-b:
+    image: ghcr.io/jassi2004/transcend-company-b:latest
+    restart: unless-stopped
+    ports: ["127.0.0.1:${COMPANY_B_PORT:-4300}:4300"]
+    environment:
+      ENABLE_DEMO_FAULTS: "true"
+      SANDBOX_TOKEN: ${COMPANY_B_TOKEN:?Run deploy/start.sh first}
+    volumes: ["company-b-data:/data"]
+  maya:
+    image: ${MAYA_IMAGE:-ghcr.io/jassi2004/transcend-maya:latest}
+    restart: unless-stopped
+    ports: ["127.0.0.1:${MAYA_PORT:-4200}:4200"]
+    depends_on:
+      company-a: {condition: service_healthy}
+      company-b: {condition: service_healthy}
+    environment:
+      MAYA_ACCESS_TOKEN: ${MAYA_ACCESS_TOKEN:?Run deploy/start.sh first}
+      COMPANY_A_URL: http://company-a:4100
+      COMPANY_A_TOKEN: ${COMPANY_A_TOKEN}
+      COMPANY_B_URL: http://company-b:4300
+      COMPANY_B_TOKEN: ${COMPANY_B_TOKEN}
+    volumes: ["maya-data:/data"]
+volumes:
+  company-a-data:
+  company-b-data:
+  maya-data:

@@ -18,6 +18,8 @@ Data defaults to `~/.maya/data/maya.sqlite`. Set `DATABASE_PATH` for another loc
 
 The parent workspace's `./start.sh` builds all three Docker services, creates a private `.env`, connects both companies, and uses durable named volumes. Company A runs on 4100, MAYA on 4200, Company B on 4300. Keep the `.env` private.
 
+For a standalone checkout of this repository, run `./deploy/start.sh`. It pulls the three public GHCR images, generates separate private keys in `deploy/.env`, and starts the connected demo with persistent volumes. Requires Docker Compose and Python 3. Do not run this alongside the parent workspace launcher on the same ports. To stop it, run `docker compose -f deploy/compose.yaml down` from this repository. Use `MAYA_PORT`, `COMPANY_A_PORT`, and `COMPANY_B_PORT` to choose other local ports.
+
 ## A complete demo
 
 1. Select Company A. Inject the booking capacity regression.
@@ -38,7 +40,7 @@ The UI includes working company onboarding, run search, a workforce view, approv
 | HTTP observation and authenticated demo configuration recovery | Working for Company A and Company B |
 | Fixture contracts and live post-repair verification | Working |
 | Scoped memory, review, versioning, expiry, stale-runtime rejection | Working |
-| GitHub Actions CI and commit-tagged GHCR delivery | Configured; check Actions for actual results |
+| GitHub Actions CI, cross-stack browser checks, and commit-tagged GHCR delivery | Working; see Actions and delivery evidence |
 | GitLab Duo supervisor/specialist flow | YAML bundle; registration/execution not verified |
 | GitHub/GitLab merge requests, arbitrary CI repair, vendor monitoring | Not implemented |
 | Continuous autonomous monitoring or production healing | Not implemented |

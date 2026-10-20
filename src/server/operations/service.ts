@@ -731,14 +731,23 @@ export class Operations {
           incident.evidenceIds.push(evidence.id);
         }
       }
-      const allEvidence = incident.evidenceIds
+      const selectedEvidence = new Set<string>();
+      const allEvidence = [...incident.evidenceIds]
+        .reverse()
         .map((id) => this.db.get<EvidenceFile>("evidence", companyId, id))
         .filter(
           (e) =>
             e.kind === "signal" ||
             (e.kind === "log" && e.commitSha === sourceSha),
         )
-        .slice(-10);
+        .filter((e) => {
+          const key = `${e.kind}:${e.name}:${e.commitSha || ""}`;
+          if (selectedEvidence.has(key)) return false;
+          selectedEvidence.add(key);
+          return true;
+        })
+        .slice(0, 10)
+        .reverse();
       const sourcePaths = prioritizeSource(
         captured,
         allEvidence.map((e) => e.content).join("\n"),

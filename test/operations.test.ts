@@ -413,6 +413,43 @@ test("GitLab launch limits are enforced locally and definitive HTTP rejection is
   }
 });
 
+test("a fresh investigation budgets only the latest log capture while preserving historical evidence", async () => {
+  const s = setup();
+  try {
+    const repo = await onboard(s);
+    await s.ops.observe("alpha");
+    const incident = s.db.list<OpsIncident>("incident", "alpha")[0];
+    const historical = s.db.evidence({
+      companyId: "alpha",
+      projectId: repo.id,
+      incidentId: incident.id,
+      kind: "log",
+      name: "tests.log",
+      content: "old-capture ".repeat(2000),
+      commitSha: baseSha,
+    });
+    incident.evidenceIds.push(historical.id);
+    s.db.save("incident", incident);
+    await s.ops.investigate("alpha", incident.id);
+    const context = JSON.parse(
+      s.goals[0]
+        .split("<untrusted_repository_evidence>\n")[1]
+        .split("\n</untrusted_repository_evidence>")[0],
+    );
+    const logs = context.evidence.filter((e: any) => e.kind === "log");
+    assert.equal(logs.length, 1);
+    assert.match(logs[0].content, /Expected fee/);
+    assert.notEqual(logs[0].id, historical.id);
+    assert.ok(context.evidence.some((e: any) => e.name === "lib/price.js"));
+    assert.equal(
+      s.db.get<EvidenceFile>("evidence", "alpha", historical.id).content,
+      historical.content,
+    );
+  } finally {
+    s.store.db.close();
+  }
+});
+
 test("unconfirmed Duo launches reconcile by exact evidence digest without another launch and require an explicit delayed recovery decision", async () => {
   const s = setup();
   try {

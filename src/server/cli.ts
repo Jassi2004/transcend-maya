@@ -177,7 +177,7 @@ const backup = backupProject
       process.env.MAYA_ENCRYPTION_KEY || process.env.MAYA_ACCESS_TOKEN || "",
     )
   : undefined;
-await backup?.restore();
+await backup?.restore({ claimWriter: true });
 backup?.start();
 const operations = new Operations(opsStorage, {
   githubToken: process.env.MAYA_GITHUB_TOKEN,

@@ -85,6 +85,8 @@ Backend tests cover source provenance, scope, signatures, secret redaction, stal
 
 This is a **single operator demo**, not an enterprise multiuser system. Checkpoints run about once a minute, are single-writer and can lose changes since the last checkpoint after a hard crash. Use a persistent disk/database for production. API write outcomes that cannot be confirmed are held for reconciliation rather than retried blindly. An uncertain merge is followed with read-only provider checks, so a delayed completion can resume delivery without a second merge write.
 
+During deployment the incoming process claims the current checkpoint with a compare-and-swap before starting observers. A racing final save is reread before handover; the outgoing process cannot overwrite the new owner's checkpoint. Failed ownership confirmation stops startup. Read-only checkpoint inspection does not claim ownership. This accommodates a brief deployment overlap; it is not support for multiple active controllers.
+
 GitLab is the first complete delivery integration. GitHub discovery/PR/check support and several external signal adapters exist, but universal company onboarding and arbitrary production healing are not established. External services require their own access. Source discovery is bounded; large monorepos and new-file proposals are not supported. Repository commands execute in the company’s CI, never on MAYA’s host.
 
 MIT licensed. Built for [Life After Code](https://gitlab-transcend.devpost.com/).

@@ -836,6 +836,180 @@ test("encrypted checkpoints authenticate content, preserve scope and restore evi
   }
 });
 
+test("deployment checkpoint handoff preserves a racing final save and fences the outgoing writer", async () => {
+  const old = setup(),
+    incoming = setup(),
+    reader = setup();
+  try {
+    await onboard(old);
+    let saved = "",
+      revision = 0,
+      writes = 0;
+    let race: (() => Promise<void>) | undefined;
+    const api = async (path: string, method = "GET", body?: any) => {
+      if (path.includes("repository/files")) {
+        if (!saved) throw new DomainError(404, "No checkpoint");
+        return {
+          content: Buffer.from(saved).toString("base64"),
+          last_commit_id: String(revision),
+        };
+      }
+      if (method === "POST") {
+        writes++;
+        const competingSave = race;
+        race = undefined;
+        await competingSave?.();
+        assert.equal(
+          body.actions[0].last_commit_id,
+          saved ? String(revision) : undefined,
+          "Provider compare-and-swap",
+        );
+        saved = body.actions[0].content;
+        return { id: String(++revision) };
+      }
+      return { default_branch: "main" };
+    };
+    const outgoing = new GitLabBackup(old.db, api, "12", "stable-key");
+    await outgoing.restore();
+    await outgoing.save();
+    race = async () => {
+      old.db.evidence({
+        companyId: "alpha",
+        projectId: old.ops.repository("alpha").id,
+        kind: "log",
+        name: "last-outgoing.log",
+        content: "Final observation before handoff",
+      });
+      await outgoing.save();
+    };
+    const active = new GitLabBackup(incoming.db, api, "12", "stable-key");
+    await active.restore({ claimWriter: true });
+    assert.ok(
+      incoming.db
+        .list<EvidenceFile>("evidence", "alpha")
+        .some((e) => e.name === "last-outgoing.log"),
+      "Incoming process restores the newer state after a claim race",
+    );
+    const claimed = saved;
+    old.db.evidence({
+      companyId: "alpha",
+      projectId: old.ops.repository("alpha").id,
+      kind: "log",
+      name: "stale.log",
+      content: "This outgoing observation must not overwrite the new process",
+    });
+    await outgoing.save();
+    assert.ok(outgoing.error);
+    assert.equal(
+      saved,
+      claimed,
+      "Outgoing shutdown cannot overwrite the incoming process",
+    );
+    const repo = incoming.ops.repository("alpha");
+    repo.monitoring = false;
+    incoming.db.save("repository", repo);
+    await active.save();
+    assert.equal(active.error, undefined);
+    const beforeRead = writes;
+    await new GitLabBackup(reader.db, api, "12", "stable-key").restore();
+    assert.equal(
+      writes,
+      beforeRead,
+      "Evidence inspection remains read-only by default",
+    );
+    assert.equal(reader.ops.repository("alpha").monitoring, false);
+    assert.equal(
+      reader.db
+        .list<EvidenceFile>("evidence", "alpha")
+        .some((e) => e.name === "stale.log"),
+      false,
+    );
+  } finally {
+    old.store.db.close();
+    incoming.store.db.close();
+    reader.store.db.close();
+  }
+});
+
+test("checkpoint claim reconciles a lost response once and stops startup on unconfirmed ownership", async () => {
+  const source = setup(),
+    incoming = setup(),
+    blocked = setup();
+  try {
+    await onboard(source);
+    let saved = "",
+      revision = 0,
+      posts = 0,
+      loseReply = false,
+      denyWrite = false;
+    const api = async (path: string, method = "GET", body?: any) => {
+      if (path.includes("repository/files")) {
+        if (!saved) throw new DomainError(404, "No checkpoint");
+        return {
+          content: Buffer.from(saved).toString("base64"),
+          last_commit_id: String(revision),
+        };
+      }
+      if (method === "POST") {
+        posts++;
+        if (denyWrite) throw new Error("Write denied");
+        assert.equal(
+          body.actions[0].last_commit_id,
+          saved ? String(revision) : undefined,
+        );
+        saved = body.actions[0].content;
+        revision++;
+        if (loseReply) {
+          loseReply = false;
+          throw new Error("Response lost after commit");
+        }
+        return { id: String(revision) };
+      }
+      return { default_branch: "main" };
+    };
+    const seed = new GitLabBackup(source.db, api, "12", "stable-key");
+    await seed.restore();
+    await seed.save();
+    loseReply = true;
+    const start = posts;
+    await new GitLabBackup(incoming.db, api, "12", "stable-key").restore({
+      claimWriter: true,
+    });
+    assert.equal(
+      posts,
+      start + 1,
+      "Lost claim response is reconciled without a second write",
+    );
+    assert.equal(
+      incoming.ops.repository("alpha").fullName,
+      source.ops.repository("alpha").fullName,
+    );
+    denyWrite = true;
+    const beforeDenied = posts;
+    await assert.rejects(
+      () =>
+        new GitLabBackup(blocked.db, api, "12", "stable-key").restore({
+          claimWriter: true,
+        }),
+      /ownership could not be confirmed/,
+    );
+    assert.equal(
+      posts,
+      beforeDenied + 1,
+      "A non-racing failure is not retried",
+    );
+    assert.equal(
+      blocked.db.list("repository", "alpha").length,
+      0,
+      "No observer-ready state before ownership confirmation",
+    );
+  } finally {
+    source.store.db.close();
+    incoming.store.db.close();
+    blocked.store.db.close();
+  }
+});
+
 test("discovery and probes reject credential URLs, private networks and traversal paths", () => {
   for (const value of [
     "not-a-url",

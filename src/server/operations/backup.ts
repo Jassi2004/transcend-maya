@@ -3,6 +3,7 @@ import {
   createDecipheriv,
   createHash,
   randomBytes,
+  randomUUID,
 } from "node:crypto";
 import { gzipSync, gunzipSync } from "node:zlib";
 import type { OpsStorage } from "./storage.js";
@@ -52,6 +53,7 @@ export function openSnapshot(text: string, secret: string): any {
 }
 /** Single-writer, encrypted snapshots for an ephemeral demo host. Not a transaction database. */
 export class GitLabBackup {
+  private readonly writerId = randomUUID();
   private lastCommit?: string;
   private digest?: string;
   private exists = false;
@@ -94,7 +96,27 @@ export class GitLabBackup {
       return { schema: "maya-private-state-v2", companies, records, audit };
     });
   }
-  async restore() {
+  private async commit(data: unknown, lastCommit?: string, exists = true) {
+    const base = `projects/${encodeURIComponent(this.projectId)}`;
+    const result = await this.api(`${base}/repository/commits`, "POST", {
+      branch: this.branch,
+      ...(!exists
+        ? { start_branch: (await this.api(base)).default_branch }
+        : {}),
+      commit_message: "Persist encrypted MAYA operations [skip ci]",
+      actions: [
+        {
+          action: exists ? "update" : "create",
+          file_path: this.path,
+          content: sealSnapshot(data, this.secret),
+          ...(lastCommit ? { last_commit_id: lastCommit } : {}),
+        },
+      ],
+    });
+    if (!result.id) throw new Error("No checkpoint commit was confirmed.");
+    return result;
+  }
+  async restore(options: { claimWriter?: boolean } = {}) {
     let file: any;
     try {
       file = await this.api(
@@ -106,7 +128,7 @@ export class GitLabBackup {
         "Cloud backup cannot be read. Startup stopped to avoid overwriting saved state.",
       );
     }
-    const data = openSnapshot(
+    let data = openSnapshot(
       Buffer.from(file.content, "base64").toString(),
       this.secret,
     );
@@ -117,6 +139,55 @@ export class GitLabBackup {
       !Array.isArray(data.audit)
     )
       throw new Error("Invalid saved cloud state.");
+    if (options.claimWriter) {
+      // Render briefly overlaps old and new processes during deployment. Claim the
+      // unchanged saved state before becoming healthy, fencing the outgoing writer.
+      // A failed compare-and-swap only retries after reading the newer checkpoint;
+      // it never publishes a stale local snapshot over another process's work.
+      for (let attempt = 0; attempt < 3; attempt++) {
+        const checkpoint = {
+          writerId: this.writerId,
+          savedAt: new Date().toISOString(),
+        };
+        try {
+          const result = await this.commit(
+            { ...data, checkpoint },
+            file.last_commit_id,
+          );
+          file.last_commit_id = result.id;
+          data.checkpoint = checkpoint;
+          break;
+        } catch {
+          const latest = await this.api(
+            `projects/${encodeURIComponent(this.projectId)}/repository/files/${encodeURIComponent(this.path)}?ref=${this.branch}`,
+          );
+          const current = openSnapshot(
+            Buffer.from(latest.content, "base64").toString(),
+            this.secret,
+          );
+          // A lost response may hide a successful claim. Reconcile without another
+          // write, exactly as for other ambiguous provider operations.
+          if (current.checkpoint?.writerId === this.writerId) {
+            file = latest;
+            data = current;
+            break;
+          }
+          if (
+            attempt === 2 ||
+            latest.last_commit_id === file.last_commit_id ||
+            current.schema !== "maya-private-state-v2" ||
+            !Array.isArray(current.companies) ||
+            !current.records ||
+            !Array.isArray(current.audit)
+          )
+            throw new Error(
+              "Cloud checkpoint ownership could not be confirmed. Startup stopped to preserve saved state.",
+            );
+          file = latest;
+          data = current;
+        }
+      }
+    }
     this.lastCommit = file.last_commit_id;
     this.exists = true;
     if (
@@ -166,7 +237,10 @@ export class GitLabBackup {
       });
       this.digest = sha256(this.snapshot());
     }
-    this.lastSavedAt = file.commit?.committed_date || file.commit?.created_at;
+    this.lastSavedAt =
+      data.checkpoint?.savedAt ||
+      file.commit?.committed_date ||
+      file.commit?.created_at;
   }
   async save() {
     if (this.writing) return;
@@ -175,27 +249,16 @@ export class GitLabBackup {
       const data = this.snapshot(),
         digest = sha256(data);
       if (!data.companies.length || digest === this.digest) return;
-      const base = `projects/${encodeURIComponent(this.projectId)}`;
-      const result = await this.api(`${base}/repository/commits`, "POST", {
-        branch: this.branch,
-        ...(!this.exists
-          ? { start_branch: (await this.api(base)).default_branch }
-          : {}),
-        commit_message: "Persist encrypted MAYA operations [skip ci]",
-        actions: [
-          {
-            action: this.exists ? "update" : "create",
-            file_path: this.path,
-            content: sealSnapshot(data, this.secret),
-            ...(this.lastCommit ? { last_commit_id: this.lastCommit } : {}),
-          },
-        ],
-      });
-      if (!result.id) throw new Error("No checkpoint commit was confirmed.");
+      const savedAt = new Date().toISOString();
+      const result = await this.commit(
+        { ...data, checkpoint: { writerId: this.writerId, savedAt } },
+        this.lastCommit,
+        this.exists,
+      );
       this.lastCommit = result.id;
       this.exists = true;
       this.digest = digest;
-      this.lastSavedAt = new Date().toISOString();
+      this.lastSavedAt = savedAt;
       this.error = undefined;
     } catch {
       this.error =

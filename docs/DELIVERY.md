@@ -54,9 +54,11 @@ The corrector's second-outcome session is
 Its candidate was independently reviewed and activated as lesson `6a34526c-ecb3-4b30-81a8-a6ec045841be`. The operator additionally checked the live three-notebook cart: $75 subtotal, $7.50 discount, free shipping and $67.50 total. That browser check supplements the SHA probe; it is not an automated MAYA behavioral probe. See [the second proof](evidence/delivery-v2-second-repair.json).
 
 GitHub Company B was separately discovered as Python/FastAPI with real workflow
-configuration. Its hosted observer is paused because the public unauthenticated
-GitHub API returned 403; a scoped GitHub token is needed for reliable observation
-and writes. It is not a second completed repair/deployment proof.
+configuration. A repository-scoped GitHub token was connected on 20 October;
+hosted source discovery and Actions observation then succeeded, and monitoring
+was enabled. This removes the earlier unauthenticated API 403 blocker. It is not
+a second completed repair/deployment proof or proof that every write permission
+has been exercised.
 
 See [the three-minute walkthrough](DEMO.md) for a concise demonstration script.
 
@@ -81,6 +83,15 @@ The demo uses periodic encrypted checkpoints on GitLab, not a production databas
 Do not run another controller against the same checkpoint and repositories while
 the hosted observer is active. Documentation-only source commits skip CI and Render;
 the tested application revision above remains deployed.
+
+An environment-triggered deployment later exposed a checkpoint handover race:
+Render briefly overlapped outgoing and incoming processes. The incoming process
+now claims the latest encrypted state before becoming healthy; compare-and-swap
+prevents an outgoing final save from overwriting it. A racing newer checkpoint
+is reread, an ambiguous successful claim is reconciled without another write,
+and denied ownership stops startup. Two additional backend tests cover these
+conditions; the suite now has 42 backend tests. The earlier verification above
+records the previous release separately from this follow-up fix.
 
 ## Reproduce
 

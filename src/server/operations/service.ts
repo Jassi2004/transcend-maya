@@ -519,7 +519,8 @@ export class Operations {
           .filter(
             (i) =>
               i.publication?.prNumber &&
-              ["pr_open", "verifying"].includes(i.status),
+              (["pr_open", "verifying"].includes(i.status) ||
+                (i.status === "unknown" && i.merge?.state === "unknown")),
           )) {
           try {
             const refreshed = await this.refreshChecks(companyId, incident.id);
@@ -1488,14 +1489,21 @@ export class Operations {
           "Approved repair merged",
           `${repo.provider} confirmed merge ${result.sha}. Waiting for default-branch CI and deployment signals.`,
         );
-      } catch {
+      } catch (error) {
         incident.merge.state = "unknown";
         incident.status = "unknown";
+        const diagnostic =
+          error instanceof DomainError
+            ? error.message
+            : error instanceof Error &&
+                ["AbortError", "TimeoutError"].includes(error.name)
+              ? "The provider request timed out before a merge response."
+              : "The provider did not confirm the merge result.";
         this.step(
           incident,
           "orchestrator",
           "Merge outcome needs reconciliation",
-          "Inspect the PR and refresh checks. MAYA will not repeat this merge automatically.",
+          `${diagnostic} MAYA will reread the PR to reconcile a delayed completion and will not repeat the merge write.`,
           [],
           "blocked",
         );

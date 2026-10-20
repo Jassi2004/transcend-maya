@@ -37,7 +37,11 @@ const baseSha = "a".repeat(40),
   mergeSha = "d".repeat(40);
 const url = "https://gitlab.com/demo/team/store";
 function setup(
-  options: { protectedEdit?: boolean; supervised?: boolean } = {},
+  options: {
+    protectedEdit?: boolean;
+    supervised?: boolean;
+    delayedMerge?: boolean;
+  } = {},
 ) {
   const store = new Store(":memory:"),
     db = new OpsStorage(store, "operator-secret");
@@ -177,6 +181,8 @@ function setup(
       };
     if (route === "/merge_requests/1/merge") {
       merges++;
+      if (options.delayedMerge)
+        throw new DOMException("Timed out", "TimeoutError");
       merged = true;
       head = mergeSha;
       return { state: "merged", merge_commit_sha: mergeSha };
@@ -285,6 +291,10 @@ function setup(
     },
     set stalePolicy(value: boolean) {
       stalePolicy = value;
+    },
+    completeDelayedMerge() {
+      merged = true;
+      head = mergeSha;
     },
   };
 }
@@ -581,6 +591,58 @@ test("green repair CI cannot resolve delivery; release requires merge, passing r
     assert.equal(
       s.db.get<OpsIncident>("incident", "alpha", incident.id).steps.length,
       steps,
+    );
+  } finally {
+    s.store.db.close();
+  }
+});
+
+test("a timed-out merge is reconciled by observer reads, including delayed provider completion, without another merge write", async () => {
+  const s = setup({ delayedMerge: true });
+  try {
+    const { incident } = await proposed(s);
+    await s.ops.publish(
+      "alpha",
+      incident.id,
+      incident.planDigest!,
+      "Reviewed exact source repair",
+    );
+    s.status = "success";
+    await s.ops.settings("alpha", { automationMode: "supervised" });
+    const uncertain = await s.ops.merge(
+      "alpha",
+      incident.id,
+      incident.planDigest!,
+      "Approve staging after exact CI",
+    );
+    assert.equal(uncertain.status, "unknown");
+    assert.match(uncertain.steps.at(-1)!.detail, /timed out/);
+    await s.ops.observe("alpha");
+    assert.equal(
+      s.db.get<OpsIncident>("incident", "alpha", incident.id).status,
+      "unknown",
+    );
+    assert.equal(s.counts.merges, 1);
+    await assert.rejects(() =>
+      s.ops.merge(
+        "alpha",
+        incident.id,
+        incident.planDigest!,
+        "Do not duplicate the uncertain request",
+      ),
+    );
+    s.completeDelayedMerge();
+    s.liveSha = mergeSha;
+    await s.ops.observe("alpha");
+    const verified = s.db.get<OpsIncident>("incident", "alpha", incident.id);
+    assert.equal(verified.status, "resolved");
+    assert.equal(verified.merge?.sha, mergeSha);
+    assert.equal(verified.deploymentProbe?.passed, true);
+    assert.equal(s.counts.merges, 1);
+    assert.ok(
+      s.db
+        .list<AgentTask>("task", "alpha")
+        .some((t) => t.purpose === "reflect"),
     );
   } finally {
     s.store.db.close();

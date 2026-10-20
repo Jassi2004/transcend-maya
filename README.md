@@ -6,6 +6,10 @@ MAYA is the separate automation product. [Field Supply](https://maya-demo-store-
 
 The default dashboard shows the delivery journey, clickable workforce diagram, source diffs, failed-job traces, approvals, CI results, deployed revision and company memory. The older deterministic fault-reset experiment remains available at `/?lab=1`; it is historical and is not the CI/CD repair engine.
 
+**Verified demo:** two real Duo-authored pricing repairs reached GitLab Pages staging through actual MRs and CI. The second investigation retrieved the first reviewed lesson. [Inspect the delivery proof](docs/DELIVERY.md) or follow the [three-minute walkthrough](docs/DEMO.md).
+
+![Hosted MAYA workforce and verified staging delivery](docs/screenshots/delivery-v2-workforce.jpg)
+
 ## Run locally
 
 Requires Node.js 24–26. No Docker or paid service is required for the local console.
@@ -79,7 +83,7 @@ Backend tests cover source provenance, scope, signatures, secret redaction, stal
 
 [Hosted MAYA](https://maya-yard-jassi.onrender.com) uses an operator key. The existing key is `MAYA_ACCESS_TOKEN` in its Render environment. The free Render filesystem is ephemeral. When a cloud Duo project is configured, MAYA stores compressed **AES-256-GCM encrypted checkpoints** on a separate GitLab branch, `maya-state-v2`, and restores them before starting observers. `MAYA_BACKUP_PROJECT_ID` can select a different backup project. The encryption key is `MAYA_ENCRYPTION_KEY` or the stable operator key; losing/changing it without migration prevents restoration. The UI exposes checkpoint status and supports a credential-free export.
 
-This is a **single operator demo**, not an enterprise multiuser system. Checkpoints run about once a minute, are single-writer and can lose changes since the last checkpoint after a hard crash. Use a persistent disk/database for production. API write outcomes that cannot be confirmed are held for reconciliation rather than retried blindly.
+This is a **single operator demo**, not an enterprise multiuser system. Checkpoints run about once a minute, are single-writer and can lose changes since the last checkpoint after a hard crash. Use a persistent disk/database for production. API write outcomes that cannot be confirmed are held for reconciliation rather than retried blindly. An uncertain merge is followed with read-only provider checks, so a delayed completion can resume delivery without a second merge write.
 
 GitLab is the first complete delivery integration. GitHub discovery/PR/check support and several external signal adapters exist, but universal company onboarding and arbitrary production healing are not established. External services require their own access. Source discovery is bounded; large monorepos and new-file proposals are not supported. Repository commands execute in the company’s CI, never on MAYA’s host.
 

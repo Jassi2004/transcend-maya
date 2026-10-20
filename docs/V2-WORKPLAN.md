@@ -63,5 +63,11 @@ Cloud SQLite persistence must be described and export/restore supported.
 - [x] New operations UI and interactive diagram
 - [x] Backend/security/browser regression tests
 - [x] Real GitLab ecommerce repair and second-stack GitHub discovery
-- [ ] Second failure using reviewed memory and supervised staging
-- [ ] Hosted V2 deployment and restoration verification
+- [x] Second failure using reviewed memory and supervised staging
+- [x] Hosted V2 deployment and restoration verification
+
+Final deployed application revision: `53707348aa23f4f4a010cf4025d3187ada986a8e`.
+GitHub and GitLab CI passed. After the Render restart, both resolved deliveries,
+two active lessons, one retired lesson and the original six workforce tasks were
+preserved. A separate read-only restore into an empty in-memory database verified
+all 74 evidence hashes. See [final verification](evidence/delivery-v2-final-verification.json).

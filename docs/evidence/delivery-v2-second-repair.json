@@ -1,0 +1,237 @@
+{
+  "schema": "maya-real-delivery-proof-v2",
+  "recordedAt": "2026-10-20T12:59:12.469Z",
+  "workload": {
+    "name": "Field Supply",
+    "repository": "https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43459489/maya-demo-store",
+    "companyId": "company-a"
+  },
+  "stimulus": {
+    "commitSha": "280885af0d24d146b7e99ca78e9cfabff772f8c1",
+    "pipeline": "https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43459489/maya-demo-store/-/pipelines/2967470377",
+    "description": "A deliberate source regression excluded exactly-three-item bundles from their advertised 10% discount. The correction was authored by GitLab Duo from actual failed assertions and immutable source."
+  },
+  "workforce": {
+    "id": "b405e55d-2282-4318-aadf-b5de8fa5f287",
+    "sessionId": "9747801",
+    "url": "https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43459489/showcase/-/automate/agent-sessions/9747801",
+    "state": "complete",
+    "evidenceDigest": "b98dfcf0715c0a78776aa1fdf91a928b31f45a731d822565e02ba04899643e9b",
+    "evidenceIds": [
+      "7c3953ca-937b-41cc-904c-d7910c01f247",
+      "f0a2fa26-042d-4fcd-98fd-ed8189972cc8",
+      "854e2f24-5614-43cc-846a-273e63daf4ae",
+      "bd9a1f38-8bc8-45cf-a635-0ea76a9ec265",
+      "8eef9c29-e82b-4143-a5c4-43fa3e2a8e53",
+      "b649f1c0-f1db-499e-90ef-b641861e5ae5",
+      "2647f41f-266e-41ec-b0af-6293e43428b2",
+      "5d69bc31-8210-4330-b09d-0ecdc099e9d0",
+      "d7eeecdd-22f1-4fa3-a4c9-504d2118d619",
+      "1f4b506b-3613-4261-8ba6-033617117ddd",
+      "dbf1c13f-1481-48d7-a9c1-ea8d3800f31b",
+      "94ef5259-89d0-4655-9a10-ce38a7707b85",
+      "0d8e1a5c-e272-4154-a292-a44e110eba1d",
+      "ab13d9a5-4eb2-4325-9741-6dc6f600b877",
+      "fe2f4095-c65f-47ac-a7b4-d2685f7e733d",
+      "d7d5dced-787d-4264-b740-38d768f77fc6"
+    ],
+    "componentReports": [
+      {
+        "role": "orchestrator",
+        "type": "tool",
+        "content": "**Diagnosis of pipeline #6 (unit_tests job, `npm test`: 8 pass, 2 fail)**\n\n**Root cause**\n`bundleDiscountCents` in `lib/pricing.js` (evidence dbf1c13f) uses a strict comparison, `quantity > 3`. The customer-facing contract is \"10% off bundles of 3+ items\" (index.html, bd9a1f38), which means a quantity of 3 or more qualifies. The code therefore gives no discount at exactly 3 items. This is an off-by-one boundary error in the comparison operator, and the tests match the copy.\n\n**Failing contract**\nA bundle of 3 or more items earns floor(subtotal × 10%).\n\n**Evidence for each failure**\n- **Failure 1** (`test/pricing.test.js:8`): `bundleDiscountCents(7500, 3)` returned 0 but should be 750. With `quantity > 3`, 3 > 3 is false, so the result is 0.\n- **Failure 2** (`test/pricing.test.js:12`): `quote([{form, qty 3}])` has subtotal 7500 (3 × 2500). Shipping is correctly 0, since 7500 ≥ 5000. The discount is wrongly 0, so the total is 7500 instead of 6750. This is the same defect propagating through `quote`, not a second bug.\n\n**Passing tests that bound the fault**\n- The shipping tests at 5000, 4999, 5001 and 0 pass, so the shipping operator is correct. This is unlike the earlier lesson 43ffaeca, where the shipping threshold was the problem.\n- \"Two items do not earn a bundle discount\" passes, and it still will with `>= 3`.\n- \"Discounts round down\" passes (`bundleDiscountCents(7501, 4) == 750`). `Math.floor` is correct, and 4 items qualifies under either operator.\n- The invalid-input and catalog-price tests pass.\n\n**Smallest fix**\nIn `lib/pricing.js`, change `quantity > 3` to `quantity >= 3` in `bundleDiscountCents`. Leave the rest unchanged.\n\n**Other edits needed?**\nNo. Only `lib/pricing.js` needs to change.\n- The tests agree with the copy, so they should stay unchanged, including the boundary tests. The README says tests must not be weakened.\n- `index.html` already says \"3+\", so it is correct.\n- `package.json` and `.gitlab-ci.yml` show no sign of being implicated in this failure. The `check` script is only a syntax check.\n\n**Uncertainties**\n- The `quote` body is elided in the supplied text (`{ ... }`). The arithmetic is inferred from the described behaviour and the 7500 result, not from the full source.\n- I did not see the full `.gitlab-ci.yml` or `package.json` contents beyond the scripts, so I can't rule out other problems there. The failure signature doesn't suggest any.\n- Other hard-coded copies of the \"3+\" rule may exist elsewhere, such as `app.js`. None were supplied, so I did not search for them.\n- No production evidence was supplied.\n- The fix is unverified until CI passes on the exact repair commit. A passing version.json SHA probe would only show which commit is deployed, not how it behaves.\n- Lesson 43ffaeca is a proposed lesson, not authority. I used it only as a method: compare the operator with the customer wording first. The evidence here supports that conclusion independently.\n\n**Evidence references**\n- Signal 7c3953ca\n- Log f0a2fa26\n- test/pricing.test.js 854e2f24, lines 8 and 12\n- lib/pricing.js dbf1c13f, `bundleDiscountCents`\n- index.html bd9a1f38 copy"
+      },
+      {
+        "role": "orchestrator",
+        "type": "tool",
+        "content": "## Repair: `lib/pricing.js`\n\nOriginal blob SHA: `8e5ba41a78e1d6a76c244d8ede57aba5a3cf9f29`\n\nThe only change is in `bundleDiscountCents`, where `quantity > 3` becomes `quantity >= 3`.\n\n```js\n// Prices and arithmetic stay in integer cents; the storefront never processes payments.\nexport const catalog = [\n  { id: \"arc\", name: \"Arc desk lamp\", category: \"LIGHTING\", priceCents: 8900, color: \"#d9c8b4\", shape: \"lamp\", description: \"A little warmth for your workspace.\" },\n  { id: \"loop\", name: \"Loop headphones\", category: \"AUDIO\", priceCents: 12900, color: \"#b4c4b5\", shape: \"headphones\", description: \"Make room for your own rhythm.\" },\n  { id: \"form\", name: \"Form notebook\", category: \"STATIONERY\", priceCents: 2500, color: \"#bdc5d4\", shape: \"notebook\", description: \"A place for your next good idea.\" },\n  { id: \"pour\", name: \"Pour carafe\", category: \"EVERYDAY\", priceCents: 3900, color: \"#e0c2b5\", shape: \"carafe\", description: \"The everyday, a little more considered.\" },\n  { id: \"rest\", name: \"Rest desk mat\", category: \"WORKSPACE\", priceCents: 4900, color: \"#bfc7bb\", shape: \"mat\", description: \"A softer landing for your working day.\" },\n  { id: \"hold\", name: \"Hold pen tray\", category: \"WORKSPACE\", priceCents: 2900, color: \"#d9ccad\", shape: \"tray\", description: \"Keep the small things together.\" }\n];\n\nexport function shippingCents(subtotalCents) {\n  if (!Number.isSafeInteger(subtotalCents) || subtotalCents < 0) throw new Error(\"Invalid subtotal\");\n  return subtotalCents === 0 || subtotalCents >= 5000 ? 0 : 799;\n}\n\nexport function bundleDiscountCents(subtotalCents, quantity) {\n  if (!Number.isSafeInteger(quantity) || quantity < 0) throw new Error(\"Invalid quantity\");\n  return quantity >= 3 ? Math.floor(subtotalCents * 0.1) : 0;\n}\n\nexport function quote(lines) {\n  if (!Array.isArray(lines) || lines.length > 50) throw new Error(\"Invalid cart\");\n  let subtotalCents = 0, quantity = 0;\n  for (const line of lines) {\n    const product = catalog.find((p) => p.id === line.id);\n    if (!product || !Number.isSafeInteger(line.quantity) || line.quantity < 1 || line.quantity > 20) throw new Error(\"Invalid cart line\");\n    subtotalCents += product.priceCents * line.quantity;\n    quantity += line.quantity;\n  }\n  const discountCents = bundleDiscountCents(subtotalCents, quantity);\n  const deliveryCents = shippingCents(subtotalCents);\n  return { subtotalCents, discountCents, shippingCents: deliveryCents, totalCents: subtotalCents - discountCents + deliveryCents, quantity };\n}\n```\n\n## Rationale\n\n- **Copy and tests agree:** `index.html` says \"10% off bundles of 3+ items\", and the test names the \"exactly three items\" case as earning the discount. The code's `> 3` excluded exactly three items, so the code was wrong and the tests and copy are left alone.\n- **Both failures share this cause:**\n  - `bundleDiscountCents(7500, 3)` now returns `floor(750.0) = 750`, not 0.\n  - `quote([{id:\"form\",quantity:3}])` has subtotal 7500, discount 750 and shipping 0 (7500 ≥ 5000), so the total is 7500 − 750 + 0 = 6750.\n- **Other assertions, traced by hand:**\n  - `(5000, 2)` still gives 0, because 2 < 3.\n  - `(7501, 4)` gives `floor(750.1) = 750`.\n  - The `quote` deepEqual with two forms gives subtotal 5000, discount 0, shipping 0, total 5000, quantity 2. The `priceCents: 1` on the line is ignored because prices come from the catalog.\n  - `shippingCents` is unchanged, so its boundary cases (0, 4999, 5000, 5001, -1, NaN) behave as before.\n  - The invalid-quantity check in `bundleDiscountCents` is unchanged, so `(100, -1)` still throws.\n- **Security gates:** the validation checks (cart size limit of 50, line quantity 1–20, integer checks) are untouched.\n\n## Risks and missing evidence\n\n- **Unverified:** this is a hand trace only. The repair is not confirmed until CI runs `node --test test/*.test.js` on the exact repair commit. Per the reviewed lesson, the `version.json` probe only shows the deployed SHA, not behaviour.\n- **Other copies:** I did not search the repo for other hard-coded copies of the threshold, as the lesson advises. If other UI code or documentation states the discount rule, it was not examined.\n- **Unrelated edge case, not changed:** `bundleDiscountCents` does not validate `subtotalCents`. It is only called from `quote` with a computed value, and no test requires a change."
+      },
+      {
+        "role": "orchestrator",
+        "type": "tool",
+        "content": "## Verdict\n\nThe one-token change `> 3` → `>= 3` is consistent with the failure, the tests and the customer copy. I could only check this by reading the code. Nothing has been run, so the repair is **unverified**.\n\n## Logic check against the failure\n\n- **Failure 1** (`bundleDiscountCents(7500,3)`, 0 !== 750): at quantity 3, `3 > 3` is false, so the discount was 0. With `3 >= 3` it is `floor(7500 * 0.1)`. In IEEE double arithmetic `7500 * 0.1` rounds to exactly 750, so the result is 750.\n- **Failure 2** (`quote form×3`, 7500 !== 6750): the subtotal is 7500, the discount becomes 750, and shipping is 0 because 7500 ≥ 5000. The total is 7500 − 750 + 0 = 6750.\n\n## Other tests, traced by hand against the proposed file\n\n- `bundleDiscountCents(5000,2)` = 0, because 2 < 3.\n- `bundleDiscountCents(7501,4)` = `floor(750.1)` = 750.\n- `quote([{id:\"form\",quantity:2,priceCents:1}])`:\n  - The client-supplied `priceCents` is ignored, so the subtotal is 5000.\n  - Quantity 2 gives no discount, and 5000 ≥ 5000 gives free shipping.\n  - The total is 5000, and the deepEqual shape matches.\n- Invalid cart lines (missing id, quantity −1, 1.5 or 99) still throw, because that code is unchanged.\n- `shippingCents(5000)` = 0, `(4999)` = 799, `(5001)` = 0 and `(0)` = 0 all hold. `shippingCents(-1)` and `shippingCents(NaN)` still throw.\n- `bundleDiscountCents(100,-1)` still throws.\n\n## Contracts and the lesson\n\n- The index.html copy says \"10% off bundles of 3+ items\", which matches `>= 3`. \"Free delivery on orders of $50 or more\" matches the existing `>= 5000`.\n- Tests and copy agree with each other, and the code was the odd one out. The repair follows the reviewed lesson: compare the operator to the customer wording and leave the tests alone.\n- The test blob is stated as unchanged (`fd69d2e…`). I see no weakening of tests, security or validation.\n\n## Collateral behavior\n\n- Every cart with exactly 3 items now gets the 10% discount. This is the intended change.\n- Totals change only for quantity-3 carts. Quantities of 0–2 and 4 or more behave as before.\n- Pre-existing and out of scope: `bundleDiscountCents` does not validate `subtotalCents`. That does not affect `quote`, which computes the subtotal itself.\n\n## Missing artifacts and unsupported claims\n\n- **No CI result** for the proposed commit. There is no commit SHA for the repair, so a result could not be tied to it anyway. Only pipeline #6 on `280885af…` is evidenced, and that run is the failing one.\n- **No merge or deployment evidence.**\n- **No actual diff.** The claim that the file is identical to blob `8e5ba41…` except for that line comes from the submitter. Because the whole file was pasted as a replacement, whitespace, line-ending or other drift is possible. Run `git diff` and confirm it is a one-line change.\n- **Other consumers not shown.** I only have snippets of index.html. Other callers, UI code or docs that restate the \"more than 3\" threshold were not provided.\n- **\"Investigator and specialist both conclude…\"** is a secondhand claim that I did not verify independently.\n\n## Recommendation\n\nThe change looks correct and minimal. Before calling it fixed, push the commit, confirm `git diff` shows only that line, and check that `npm test` passes 10/10 in CI on that exact SHA. Also grep the repo for other uses of the threshold."
+      },
+      {
+        "role": "orchestrator",
+        "type": "agent",
+        "content": "{\"title\":\"Fix bundle discount threshold for exactly three items\",\"category\":\"ci\",\"rootCause\":\"In lib/pricing.js, bundleDiscountCents used `quantity > 3`, so a bundle of exactly three items got no discount. The storefront copy in index.html says \\\"10% off bundles of 3+ items\\\", and the existing tests expect a discount at exactly 3 items. The unit_tests job failed on two assertions. The first was bundleDiscountCents(7500, 3), which returned 0 instead of 750. The second was the three-item quote total, which was 7500 instead of 6750. The second failure comes from the same defect. Shipping, rounding and validation tests passed. Uncertainty: the verifier traced the change by hand and no CI has run on the repair. The repo was not searched for other hard-coded copies of the 3+ rule.\",\"confidence\":\"high\",\"evidenceIds\":[\"7c3953ca-937b-41cc-904c-d7910c01f247\",\"f0a2fa26-042d-4fcd-98fd-ed8189972cc8\",\"854e2f24-5614-43cc-846a-273e63daf4ae\",\"dbf1c13f-1481-48d7-a9c1-ea8d3800f31b\",\"bd9a1f38-8bc8-45cf-a635-0ea76a9ec265\"],\"files\":[{\"path\":\"lib/pricing.js\",\"originalSha\":\"8e5ba41a78e1d6a76c244d8ede57aba5a3cf9f29\",\"content\":\"// Prices and arithmetic stay in integer cents; the storefront never processes payments.\\nexport const catalog = [\\n  { id: \\\"arc\\\", name: \\\"Arc desk lamp\\\", category: \\\"LIGHTING\\\", priceCents: 8900, color: \\\"#d9c8b4\\\", shape: \\\"lamp\\\", description: \\\"A little warmth for your workspace.\\\" },\\n  { id: \\\"loop\\\", name: \\\"Loop headphones\\\", category: \\\"AUDIO\\\", priceCents: 12900, color: \\\"#b4c4b5\\\", shape: \\\"headphones\\\", description: \\\"Make room for your own rhythm.\\\" },\\n  { id: \\\"form\\\", name: \\\"Form notebook\\\", category: \\\"STATIONERY\\\", priceCents: 2500, color: \\\"#bdc5d4\\\", shape: \\\"notebook\\\", description: \\\"A place for your next good idea.\\\" },\\n  { id: \\\"pour\\\", name: \\\"Pour carafe\\\", category: \\\"EVERYDAY\\\", priceCents: 3900, color: \\\"#e0c2b5\\\", shape: \\\"carafe\\\", description: \\\"The everyday, a little more considered.\\\" },\\n  { id: \\\"rest\\\", name: \\\"Rest desk mat\\\", category: \\\"WORKSPACE\\\", priceCents: 4900, color: \\\"#bfc7bb\\\", shape: \\\"mat\\\", description: \\\"A softer landing for your working day.\\\" },\\n  { id: \\\"hold\\\", name: \\\"Hold pen tray\\\", category: \\\"WORKSPACE\\\", priceCents: 2900, color: \\\"#d9ccad\\\", shape: \\\"tray\\\", description: \\\"Keep the small things together.\\\" }\\n];\\n\\nexport function shippingCents(subtotalCents) {\\n  if (!Number.isSafeInteger(subtotalCents) || subtotalCents < 0) throw new Error(\\\"Invalid subtotal\\\");\\n  return subtotalCents === 0 || subtotalCents >= 5000 ? 0 : 799;\\n}\\n\\nexport function bundleDiscountCents(subtotalCents, quantity) {\\n  if (!Number.isSafeInteger(quantity) || quantity < 0) throw new Error(\\\"Invalid quantity\\\");\\n  return quantity >= 3 ? Math.floor(subtotalCents * 0.1) : 0;\\n}\\n\\nexport function quote(lines) {\\n  if (!Array.isArray(lines) || lines.length > 50) throw new Error(\\\"Invalid cart\\\");\\n  let subtotalCents = 0, quantity = 0;\\n  for (const line of lines) {\\n    const product = catalog.find((p) => p.id === line.id);\\n    if (!product || !Number.isSafeInteger(line.quantity) || line.quantity < 1 || line.quantity > 20) throw new Error(\\\"Invalid cart line\\\");\\n    subtotalCents += product.priceCents * line.quantity;\\n    quantity += line.quantity;\\n  }\\n  const discountCents = bundleDiscountCents(subtotalCents, quantity);\\n  const deliveryCents = shippingCents(subtotalCents);\\n  return { subtotalCents, discountCents, shippingCents: deliveryCents, totalCents: subtotalCents - discountCents + deliveryCents, quantity };\\n}\\n\",\"rationale\":\"The only change is in bundleDiscountCents, where `quantity > 3` becomes `quantity >= 3`. This matches the advertised \\\"10% off bundles of 3+ items\\\" and the existing tests. A three-item bundle now gets floor(10%), so bundleDiscountCents(7500, 3) is 750 and the three-item quote total is 6750. Tests, shipping logic and validation are unchanged.\"}],\"verification\":[\"Confirm the diff against blob 8e5ba41a78e1d6a76c244d8ede57aba5a3cf9f29 is the one-line `>` to `>=` change only\",\"Run npm ci --ignore-scripts and npm test on the exact repair commit; all 10 tests must pass with test/pricing.test.js unchanged\",\"Run npm run check (syntax check of app.js and lib/pricing.js)\",\"Run npm audit --omit=dev --audit-level=high (dependency_audit job)\",\"Run npm run build (package_storefront job)\",\"After merge, check that the pipeline for the merge commit passes, including pages and verify_staging\"],\"risks\":[\"No CI has run on the proposed change. The verifier traced it by hand only.\",\"The repo was not searched for other hard-coded copies of the 3+ bundle rule, such as docs or UI code beyond the files supplied.\",\"Every exactly-3-item cart now gets the 10% discount, so those totals change. This is the intended behaviour.\",\"The whole file is replaced, so whitespace or line-ending drift from the original is possible. The diff check above covers this.\",\"bundleDiscountCents does not validate subtotalCents. This is existing behaviour, not part of the failure, and was left unchanged.\",\"No merge, deployment or staging proof has been supplied.\"],\"questions\":[]}"
+      }
+    ]
+  },
+  "reviewedContext": {
+    "matchedLessonIds": [
+      "43ffaeca-486e-4012-a51c-6f81888af945"
+    ],
+    "claim": "Scoped advisory memory was retrieved. This demonstrates retrieval, not model retraining or a causal speed improvement."
+  },
+  "proposal": {
+    "digest": "c7430baf94f04d1e729b2d0c538a95ff5058e16593c29fe6c23a27b318cb2056",
+    "title": "Fix bundle discount threshold for exactly three items",
+    "confidence": "high",
+    "changedPaths": [
+      "lib/pricing.js"
+    ],
+    "originalBlobShas": [
+      "8e5ba41a78e1d6a76c244d8ede57aba5a3cf9f29"
+    ],
+    "rootCause": "In lib/pricing.js, bundleDiscountCents used `quantity > 3`, so a bundle of exactly three items got no discount. The storefront copy in index.html says \"10% off bundles of 3+ items\", and the existing tests expect a discount at exactly 3 items. The unit_tests job failed on two assertions. The first was bundleDiscountCents(7500, 3), which returned 0 instead of 750. The second was the three-item quote total, which was 7500 instead of 6750. The second failure comes from the same defect. Shipping, rounding and validation tests passed. Uncertainty: the verifier traced the change by hand and no CI has run on the repair. The repo was not searched for other hard-coded copies of the 3+ rule."
+  },
+  "publication": {
+    "branch": "maya/repair-d0387863-b42",
+    "state": "created",
+    "commitSha": "243008372d6c3ca96703f7abca3cecb0d6dceba0",
+    "prNumber": 2,
+    "url": "https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43459489/maya-demo-store/-/merge_requests/2"
+  },
+  "checks": {
+    "sha": "243008372d6c3ca96703f7abca3cecb0d6dceba0",
+    "state": "passing",
+    "items": [
+      {
+        "name": "package_storefront",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43459489/maya-demo-store/-/jobs/17315882910"
+      },
+      {
+        "name": "dependency_audit",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43459489/maya-demo-store/-/jobs/17315882909"
+      },
+      {
+        "name": "syntax_check",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43459489/maya-demo-store/-/jobs/17315882908"
+      },
+      {
+        "name": "unit_tests",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43459489/maya-demo-store/-/jobs/17315882904"
+      }
+    ],
+    "at": "2026-10-20T12:47:42.958Z"
+  },
+  "merge": {
+    "state": "merged",
+    "sha": "89d0e15d178c27427a8c3e81417844086167c144",
+    "at": "2026-10-20T12:44:44.905Z",
+    "reason": "Supervised staging policy: exact repair commit passed CI; merge into the explicitly declared staging branch."
+  },
+  "deployment": {
+    "state": "success",
+    "url": "https://maya-demo-store-af3ce5.gitlab.io",
+    "at": "2026-10-20T12:46:22.764Z"
+  },
+  "probe": {
+    "url": "https://maya-demo-store-af3ce5.gitlab.io/version.json",
+    "expectedSha": "89d0e15d178c27427a8c3e81417844086167c144",
+    "actualSha": "89d0e15d178c27427a8c3e81417844086167c144",
+    "httpStatus": 200,
+    "passed": true,
+    "at": "2026-10-20T12:47:45.349Z"
+  },
+  "attempts": [
+    {
+      "taskId": "b405e55d-2282-4318-aadf-b5de8fa5f287",
+      "baseSha": "280885af0d24d146b7e99ca78e9cfabff772f8c1",
+      "digest": "c7430baf94f04d1e729b2d0c538a95ff5058e16593c29fe6c23a27b318cb2056",
+      "commitSha": "243008372d6c3ca96703f7abca3cecb0d6dceba0",
+      "at": "2026-10-20T12:41:01.028Z"
+    }
+  ],
+  "learning": {
+    "reflection": {
+      "id": "ff0cd221-008b-4755-9bcc-5153f9363f41",
+      "sessionId": "9748345",
+      "state": "complete",
+      "url": "https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43459489/showcase/-/automate/agent-sessions/9748345"
+    },
+    "lessons": [
+      {
+        "title": "Off-by-one bundle discount threshold (`>` instead of `>=`) broke the '3+ items' rule",
+        "symptoms": "Pipeline #6 on main at commit 280885af failed in the unit_tests job: 10 tests ran, 8 passed and 2 failed. At test/pricing.test.js:8, bundleDiscountCents(7500, 3) returned 0 but 750 was expected. At test/pricing.test.js:12, the three-item 'form' quote total was 7500 but 6750 was expected. Both failures occur at a quantity of exactly 3. Shipping, validation, two-item and rounding tests passed.",
+        "rootCause": "In lib/pricing.js (blob 8e5ba41a), bundleDiscountCents used `quantity > 3`. The unchanged tests and the index.html copy ('10% off bundles of 3+ items') require the discount at 3 or more items, so the condition should be `quantity >= 3`. The verifier confirmed by reasoning that this one-operator change gives the expected results for both failing assertions and keeps the other tests passing. The repair was published as MR #2 (head 243008372d) and merged into main as 89d0e15d. Exact-commit CI passed on both the repair head (4 jobs) and the merge commit (6 jobs, including pages and verify_staging). The deployment succeeded. The /version.json probe returned HTTP 200 with expectedSha equal to actualSha (89d0e15d). That probe proves only which commit is deployed. No behavioral pricing probe was supplied, so live pricing recovery is not claimed. These points were not verified: that the change is minimal (no real diff), that the tests are unmodified at the MR head, that the approval digest matches the merged content, that no other copies of the 3+ rule exist, and that there was no duplicate merge write (operator statement only).",
+        "guidance": "1. When a threshold test fails at exactly N, compare the source comparison operator with the stated rule. 'N or more' means `>=`. Treat the tests and user-facing copy as the reference for the rule. 2. Keep the repair to the failing source file. Leave protected tests, CI definitions, deployment policy and package scripts unchanged. 3. Report separately what was verified. That means exact-commit CI results, the deployed-SHA match, and live behavior. A SHA probe does not prove behavior, so add a behavioral probe, such as a three-item quote, before claiming recovery. 4. After a hosted merge request times out, read the provider's MR state before retrying. Here MR #2 had already merged asynchronously, and the operator reports no retry was issued. Keep that claim marked as operator-reported until independent logs confirm it. 5. Add boundary tests at N-1, N and N+1, because the current coverage is thin. 6. Consider reviewing the pre-existing floating-point `subtotal * 0.1` in the integer-cents module. It is out of scope for this repair. 7. Search the repository for other hard-coded copies of a business rule before declaring it fixed everywhere. No reviewed lessons were supplied, so this guidance comes only from this incident's verified checks.",
+        "id": "6a34526c-ecb3-4b30-81a8-a6ec045841be",
+        "companyId": "company-a",
+        "projectId": "4b3d03d6-a3a2-4f50-ac42-fb39297302e5",
+        "incidentId": "d0387863-b428-47c8-b35a-91563d62e8ab",
+        "category": "ci",
+        "status": "active",
+        "version": 1,
+        "stack": [
+          "JavaScript",
+          "HTML"
+        ],
+        "sourceSha": "89d0e15d178c27427a8c3e81417844086167c144",
+        "evidenceIds": [
+          "08e33f2d-12c2-4ef2-b32e-bb55d4046bc2",
+          "e67f3aa9-656f-47fe-828a-e8838f9154c8",
+          "58ce47be-904b-4636-851e-ca177f93ac9c",
+          "bef5fc88-1340-48a3-8838-cc1fc15c3378",
+          "5a61a42d-36c9-4e4f-a8dd-99f4609bb6aa",
+          "393d83ce-49bf-42f2-8a88-39b6740e76be",
+          "d7d5dced-787d-4264-b740-38d768f77fc6",
+          "fe2f4095-c65f-47ac-a7b4-d2685f7e733d",
+          "ab13d9a5-4eb2-4325-9741-6dc6f600b877",
+          "0d8e1a5c-e272-4154-a292-a44e110eba1d",
+          "94ef5259-89d0-4655-9a10-ce38a7707b85",
+          "dbf1c13f-1481-48d7-a9c1-ea8d3800f31b",
+          "1f4b506b-3613-4261-8ba6-033617117ddd",
+          "d7eeecdd-22f1-4fa3-a4c9-504d2118d619",
+          "5d69bc31-8210-4330-b09d-0ecdc099e9d0",
+          "2647f41f-266e-41ec-b0af-6293e43428b2",
+          "b649f1c0-f1db-499e-90ef-b641861e5ae5",
+          "8eef9c29-e82b-4143-a5c4-43fa3e2a8e53",
+          "bd9a1f38-8bc8-45cf-a635-0ea76a9ec265",
+          "854e2f24-5614-43cc-846a-273e63daf4ae",
+          "f0a2fa26-042d-4fcd-98fd-ed8189972cc8",
+          "7c3953ca-937b-41cc-904c-d7910c01f247"
+        ],
+        "createdAt": "2026-10-20T12:50:16.713Z",
+        "expiresAt": "2026-11-19T12:50:16.713Z",
+        "reviews": [
+          {
+            "action": "promote",
+            "reason": "Reviewed raw assertions, original source/tests, actual MR2 one-operator diff, unchanged test files, green exact-head and release CI, matching deployed SHA, and the live three-notebook cart ($75 subtotal, $7.50 discount, $67.50 total). Candidate cautions about evidence absent from its own context are preserved. Optional follow-up suggestions are not requirements or permission to change tests. The original automatic merge completed after timeout; the proposed CLI retry issued no write. Approve reusable threshold and safe reconciliation guidance as scoped advisory memory.",
+            "at": "2026-10-20T12:52:15.335Z"
+          }
+        ]
+      }
+    ]
+  },
+  "reconciliation": {
+    "originalMergeRequestTimedOut": true,
+    "providerMergedOriginalRequestLater": true,
+    "duplicateMergeWrites": false,
+    "operatorIntervention": "The deployed 69d7dfc controller required a read-only checks refresh to notice delayed merge completion. A proposed CLI retry stopped at its preflight because MR2 was already merged; no second PUT was sent. Source release 5370734 adds automatic read-only reconciliation, covered by a regression test.",
+    "auditCorrection": "An operator feedback note incorrectly described the planned retry as issued. A subsequent feedback note explicitly corrects it; both remain in history."
+  },
+  "behaviorVerification": {
+    "method": "Live browser interaction through CUA, independent of the version probe",
+    "observedStagingRevision": "89d0e15d",
+    "cart": {
+      "product": "Form notebook",
+      "quantity": 3,
+      "subtotalCents": 7500,
+      "discountCents": 750,
+      "shippingCents": 0,
+      "totalCents": 6750
+    },
+    "passed": true,
+    "screenshot": "../screenshots/delivery-v2-live-cart.jpg",
+    "claim": "Actual cart behavior was checked after reloading the repaired release. This was an operator browser check, not an automated MAYA behavior probe."
+  },
+  "storage": {
+    "mode": "encrypted-checkpoint",
+    "lastSavedAt": "2026-10-20T12:58:16.139Z"
+  },
+  "limits": [
+    "Staging only; production is not configured.",
+    "Second-stack GitHub source/workflow discovery is demonstrated, not a second end-to-end repair. Hosted GitHub API observation needs a separate token.",
+    "Free Render uses encrypted periodic checkpoints rather than a production database."
+  ]
+}

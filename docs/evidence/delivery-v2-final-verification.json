@@ -1,0 +1,43 @@
+{
+  "schema": "maya-v2-final-verification",
+  "recordedAt": "2026-10-20T12:56:17.339Z",
+  "deployedSource": "53707348aa23f4f4a010cf4025d3187ada986a8e",
+  "ci": {
+    "github": "https://github.com/Jassi2004/transcend-maya/actions/runs/39424975628",
+    "gitlab": "https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43459489/showcase/-/pipelines/2967528551",
+    "status": "success"
+  },
+  "restartRecovery": {
+    "resolvedDeliveries": 2,
+    "activeLessons": 2,
+    "retiredLessons": 1,
+    "workforceTasks": 6,
+    "duplicateTasks": false,
+    "companyPoliciesPreserved": true
+  },
+  "authenticatedExport": {
+    "workspaces": 2,
+    "evidenceHashesVerified": 74,
+    "credentialsExcluded": true
+  },
+  "isolation": {
+    "crossWorkspaceEvidenceStatus": 404,
+    "unauthenticatedSnapshotStatus": 401
+  },
+  "checkpointRestore": {
+    "freshDatabase": true,
+    "readOnly": true,
+    "evidenceHashesVerified": 74,
+    "resolvedDeliveries": 2,
+    "activeLessons": 2
+  },
+  "checkpointStatus": {
+    "mode": "encrypted-checkpoint",
+    "lastSavedAt": "2026-10-20T12:58:16.139Z"
+  },
+  "limits": [
+    "Single-operator demo with periodic encrypted checkpoints, not a production database.",
+    "GitHub Company B observation paused pending its own hosted access."
+  ],
+  "checkpointStatusObservedAt": "2026-10-20T12:59:12.586Z"
+}

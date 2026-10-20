@@ -30,7 +30,7 @@ test("real TypeScript booking and Python support services recover through the sa
 }) => {
   const errors: string[] = [];
   page.on("pageerror", (e) => errors.push(e.message));
-  await page.goto("/");
+  await page.goto("/?lab=1");
   await expect(page.locator(".boot")).not.toBeVisible({ timeout: 15000 });
   const keyField = page.getByLabel("Sandbox access key");
   if (await keyField.isVisible()) {
@@ -208,7 +208,7 @@ test("same-kind fault replacement refuses stale approval and a fresh live invest
     throw new Error(
       "Set COMPANY_A_TOKEN to verify the actual demo fault identity boundary.",
     );
-  await page.goto("/");
+  await page.goto("/?lab=1");
   await expect(page.locator(".boot")).not.toBeVisible({ timeout: 15000 });
   const keyField = page.getByLabel("Sandbox access key");
   if (await keyField.isVisible()) {

@@ -1,95 +1,32 @@
-# V1 delivery — 20 October 2026
+# MAYA V2 delivery proof
 
-Three applications are implemented, independently versioned, and integrated locally. The live connector demo recovers two deliberately injected configuration faults on different stacks. **This is a deterministic prototype, not a live AI workforce or a completed GitLab hackathon submission.**
+MAYA's primary product is now actual CI/CD source repair through GitLab Duo. The first workload is a simple ecommerce app, Field Supply. The earlier bounded fault-reset experiment is retained at `/?lab=1` and documented in [legacy delivery](LEGACY-DELIVERY.md).
 
-## Recovery hardening retest
+- [MAYA console](https://maya-yard-jassi.onrender.com)
+- [Ecommerce source + CI history](https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43459489/maya-demo-store)
+- [Live staging storefront](https://maya-demo-store-af3ce5.gitlab.io)
+- [Independent deployed revision](https://maya-demo-store-af3ce5.gitlab.io/version.json)
+- [Delivery workforce definition](../.gitlab/duo/flows/delivery-workforce.yml)
 
-The follow-up retest added durable authorization before repair, atomic live fault identity checks in both companies, fresh-investigation and read-only-recheck controls, injection journaling, consistent restart summaries and source validation on every memory reuse. Uncertain recoveries create no repair lesson. Operation errors remain visible across polling. Expected stale-fault refusals return HTTP 409; non-JSON proxy failures display actionable errors without repeating a mutation. A placeholder always-passing assertion was removed; the connected test compares the actual stored ticket content before and after recovery instead.
+## First actual repair
 
-Mobile navigation and the collapsed new-company button now retain explicit accessible labels; the browser walkthrough exercises all five mobile views and reopening onboarding. Browser coverage now includes three MAYA journeys, Company A's booking journey and two connected journeys. The added proxy-error journey checks that an HTML 502 is readable and never repeats the write. The added connected journey replaces a fault with the same kind while approval is pending: stale approval is refused, a fresh investigation preserves that replacement fault's identity, and newly approved recovery succeeds. The standalone company images are pinned to compatible commit tags in `deploy/compose.yaml`; deliberate overrides use `COMPANY_A_IMAGE` and `COMPANY_B_IMAGE`.
+The deliberate source regression changed an inclusive shipping boundary to `subtotalCents > 5000`. The real unit-tests job failed on exactly-$50 shipping and cart pricing. Duo received actual failed-job traces and source snapshots, diagnosed the boundary and returned a complete replacement of `lib/pricing.js`. Its initial unrelated pricing-policy question was clarified as preserving existing pre-discount shipping behaviour before a fresh proposal.
 
-The three Render services are deployed and returned HTTP 200 with healthy status on 20 October 2026. MAYA Incident Review v1.0.0 is registered and enabled in the GitLab Showcase project. A successful Duo execution and authenticated Render recovery retest are still pending; these are separate from deployment health.
+- Failed source commit: `3c7a0903ab0ae63fa527eb7e1c620d04fff3fa07`
+- [Initial Duo diagnosis 9744997](https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43459489/showcase/-/automate/agent-sessions/9744997)
+- [Completed repair workforce 9745458](https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43459489/showcase/-/automate/agent-sessions/9745458)
+- [Actual repair MR !1](https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43459489/maya-demo-store/-/merge_requests/1)
+- Repair commit: `2e9c3baa1d1c9a1c481b58451c32f778d4d8459c`
+- Staging merge commit: `45a696d7f527acf8b8abe434d96f63cda3e8e53f`
 
-## Open the demo
+The actual MR changes one comparison from `> 5000` to `>= 5000`. Tests and pipeline files are unchanged. Its unit tests, syntax checks, dependency audit and package job passed before the separately authorised staging merge. The release pipeline 2967383733 passed all six jobs and the live version endpoint returned the exact merged SHA with HTTP 200. Corrector session 9746395 produced lesson version 2, reviewed and activated after checking original logs, tests and merge provenance. The earlier incomplete candidate is retired and retained in history. The first verifier delegation lacked artifacts; its output is not independent validation. Actual CI provides execution evidence, and flow 1.0.1 explicitly forwards complete artifacts to subsequent verifier delegations. See [machine-readable proof](evidence/delivery-v2-first-repair.json).
 
-| Application | Local | Hosted Render demo |
-| --- | --- | --- |
-| MAYA operator console | http://localhost:4200 | https://maya-yard-jassi.onrender.com |
-| Company A — TypeScript booking SaaS | http://localhost:4100 | https://maya-company-a-jassi.onrender.com |
-| Company B — Python support SaaS | http://localhost:4300 | https://maya-company-b-jassi.onrender.com |
+## Reproduce
 
-MAYA asks for the operator key. For Render, use the generated `MAYA_ACCESS_TOKEN` from MAYA's Render Environment settings. For localhost, use that variable from the private `.env` in the parent workspace. These deployments have different keys. Keys are deliberately absent from source control and this document. Public company data is fictional demo data. Connector keys remain on the server.
+Run MAYA with a configured Duo flow and access to a demo repository. Connect its URL, inspect discovered CI and policy, explicitly allow evidence sharing, then introduce a real source defect on the demo default branch. Observe the failed pipeline. Investigate, inspect actual source diff and evidence, approve publication, wait for exact-commit CI, authorise staging merge and verify the live revision. Propose and review learning separately. For supervised staging, enable its explicit policy consent before introducing a later failure.
 
-The Render URLs run independently of the Mac. The earlier Cloudflare tunnels are temporary, historical previews; their records remain in the parent workspace. `artifacts/render-health.json` records the hosted health checks. These checks establish reachability and health, not authenticated recovery or an exact deployed source revision.
+The UI and controller tests use fake providers for deterministic validation. They are not evidence of actual Duo execution. Real session, pipeline, MR and deployment records above are independently inspectable. A deliberate source regression is a demo stimulus; its correction is authored by Duo from real logs/source, not a preselected repair recipe.
 
-## Source and delivery
+## Hackathon fit
 
-| Repository | Source | CI runs | Public container image |
-| --- | --- | --- | --- |
-| MAYA | [transcend-maya](https://github.com/Jassi2004/transcend-maya) | [Actions](https://github.com/Jassi2004/transcend-maya/actions) | `ghcr.io/jassi2004/transcend-maya` |
-| A | [transcend-company-a](https://github.com/Jassi2004/transcend-company-a) | [Actions](https://github.com/Jassi2004/transcend-company-a/actions) | `ghcr.io/jassi2004/transcend-company-a` |
-| B | [transcend-company-b](https://github.com/Jassi2004/transcend-company-b) | [Actions](https://github.com/Jassi2004/transcend-company-b/actions) | `ghcr.io/jassi2004/transcend-company-b` |
-
-All repositories are public and MIT licensed. Images have `latest` and commit tags. The company hardening pipelines succeeded: [A](https://github.com/Jassi2004/transcend-company-a/actions/runs/39347229929), [B](https://github.com/Jassi2004/transcend-company-b/actions/runs/39347228412). Use the Actions pages for MAYA's final revision result.
-
-The original parent `./start.sh` builds from all three checkouts. From a standalone MAYA clone, `./deploy/start.sh` pulls the public images and starts the same three-service topology. Both use persistent named SQLite volumes, separate server-side keys and loopback ports. They are alternative launchers: running both with their default ports conflicts.
-
-The npm tarball is `maya-agent-sandbox-0.1.0.tgz`, generated by `npm pack`. Its CLI was exercised from the installed package. The package remains private/unpublished; there is no npm registry release claim.
-
-## Verification performed
-
-- **42 backend tests passed:** 7 booking, 8 Python support, 27 MAYA. Coverage includes capacity transactions, idempotency, routing, validation, exact-artifact approval, company scope, stale memory, rejected actions, interrupted work and operator access. HTTPS proxy login also checks the Secure session cookie flag.
-- Company A browser journey created and cancelled a reservation, checked activity, and checked mobile overflow.
-- MAYA browser journey completed incident diagnosis, approval, verified recovery, independent lesson promotion, reuse, stale-runtime rejection, and an isolated new workspace; mobile layout was checked.
-- The connected browser journey exercised both actual services. During the fault, A's booking request returned **409**; B stored a new critical ticket at the wrong **low** priority. Approved recovery restored availability and reclassified that stored ticket to **critical**. The browser also created a support ticket and created/cancelled a booking after recovery.
-- Both connected regression journeys passed over all three public HTTPS URLs after the approval and proxy-error fixes. The stale-approval journey checks the actual HTTP 409 response and verifies that the replacement fault remains unchanged until a newly approved investigation repairs it.
-- Both connected companies then promoted a reviewed lesson, reused it on a repeat live incident and verified recovery again. A real MAYA container restart preserved the exact incident, run, lesson and audit counts. Synthetic handoffs from these runs are committed in `docs/examples/` for the first actual Duo review.
-- Production Docker builds succeeded. Node backend tests also execute in the Node 24 image build. Containers run as non-root. Local production dependencies audited without reported vulnerabilities at verification time.
-- npm compilation, package generation and installed CLI smoke check succeeded. GitLab/Render YAML parsed, which establishes syntax only.
-
-Screenshots from the exercised browser journeys:
-
-| Booking app | Support app |
-| --- | --- |
-| ![Company A](screenshots/company-a.png) | ![Company B](screenshots/company-b.png) |
-
-![MAYA recovering the Python service](screenshots/maya-company-b.png)
-
-## Five-minute walkthrough
-
-1. Open Company A and make a fictional reservation. Open Company B and create a critical ticket. These are independent working products.
-2. Open MAYA, enter the operator key, select Company A, then **Environment → Test live connection**.
-3. **Inject incident → Inject & investigate**. Review the failing contract, captured source evidence, exact configuration proposal and independent checks. Company A really has zero availability during this fault.
-4. **Approve exact repair**. MAYA calls the authenticated demo-control API and then probes the real service. Approval does not edit application source or merge a pull request.
-5. Open Memory, inspect the candidate's source run, then promote it separately. Repeat the incident. MAYA reuses the scoped lesson and skips investigation, while still requiring repair approval and fresh verification.
-6. Change runtime metadata in Environment and repeat. The old lesson is refused. This changes MAYA's recorded context, not the container's installed runtime.
-7. Select Company B and inject priority inversion. Critical tickets are actually routed low until approved recovery repairs routing and reclassifies open tickets. Its memory is separate from A's.
-8. Onboard a new simulation company to inspect isolated state. Only the two preconfigured demo connectors have real service access; arbitrary SaaS integrations are not implemented.
-
-The current local databases retain genuine test history. Counts reflect those records, not fabricated customer or impact metrics.
-
-## Hosted verification and deployment limits
-
-### Permanent Render hosting
-
-The `maya-transcend-demo` blueprint contains all three services in Jaskirat Singh's workspace. Their public health endpoints are verified. The authenticated cloud cross-stack browser journey passed on 20 October: both faults were reproduced and recovered, stored support-ticket priority was corrected, and customer booking/ticket journeys passed. A cold-start health timeout was warmed and retried before fault injection. The cloud stale-approval regression requires the cloud Company A connector key and remains separate from this result. The deployed application was verified as commit `b46f057a9fd33064950a77d2305e4e593e202fe8` through `/api/health`. Its GitHub verify/connected/delivery jobs and the GitLab source-mirror pipeline passed.
-
-Free Render services sleep and have ephemeral filesystems. Their SQLite records may reset on restart or deployment. The blueprint is suitable for synthetic demonstrations. Persistent cloud storage requires a disk/database decision; the current local Docker volumes are durable.
-
-### Actual GitLab Duo execution
-
-The GitLab source mirror and its normal test/build/package pipeline passed. The enabled read-only flow completed [Company A session 9727299](https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43459489/showcase/-/automate/agent-sessions/9727299) and [Company B session 9727615](https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43459489/showcase/-/automate/agent-sessions/9727615), including supervisor delegation to investigator/verifier and final reports. These reviewed historical synthetic exports at GitLab commit `cbbc542e757137b708a785f51db9ed03d558889f`. They correctly flagged missing newer evidence fields. The example files have since been refreshed from the authenticated cloud runs.
-
-The first runner attempt failed before agent startup because `node:24-bookworm-slim` lacked Git; `.gitlab/duo/agent-config.yml` now uses `node:24-bookworm`. A separate GraphQL-created session remained unstarted; this is not execution proof. The working bridge uses the REST API with the enabled consumer and `start_workflow: true`, then GraphQL polling.
-
-MAYA now exposes a per-run **Review with GitLab Duo** action, explicit evidence sharing, immutable evidence digest, real session link, retained reports and honest in-progress/failure states. Five bridge tests cover auth/scope/consent, duplicate requests, ambiguous network failure, exact session identity and result/approval separation. A browser check covers sharing, state transitions, safe text rendering and mobile layout. The opt-in real app-to-Duo browser journey passed in 1.9 minutes: a local connected Company A recovery was reviewed through the actual UI, [session 9727804](https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43459489/showcase/-/automate/agent-sessions/9727804) reached FINISHED and its report appeared in MAYA. [Frozen evidence and result](evidence/app-duo-review.json) are retained. This proves the local integration; it does not configure a cloud credential. Model conclusions remain untrusted and do not authorize actions.
-
-**Hosted recovery and Duo are verified for both stacks.** The final cloud browser journeys passed for [Company A session 9728352](https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43459489/showcase/-/automate/agent-sessions/9728352) and [Company B session 9728353](https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43459489/showcase/-/automate/agent-sessions/9728353). Each recovered a real demo fault, launched a new review from the hosted UI and displayed the final report. [Release verification](evidence/hosted-verification.json) records the exact deployment, sessions and checks; [A](evidence/cloud-company-a-duo-review.json) and [B](evidence/cloud-company-b-duo-review.json) retain their frozen evidence and results. SHA-256 recomputation matched both frozen snapshots. Cross-company handoff requests returned HTTP 404, and both services passed live health/behavior probes afterward.
-
-The first cloud attempts were interrupted when Render's post-CI redeploy reset the ephemeral demo database; their external GitLab reviews completed, but they are not counted as passing browser journeys. The two final journeys ran after deployment settled. The dedicated API token remains only in Render; the local CLI credential stays in Keychain. Documentation/evidence-only updates use Render's documented `[skip render]` phrase to retain the current demo records. Free Render redeployments may still reset SQLite, including review history.
-
-Provisioned project: https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43459489/showcase
-
-V1 has no general CI repair, autonomous production monitoring, vendor marketplace or arbitrary code repair. The demonstrated value is company-scoped reviewed memory, evidence-backed recovery across two actual stacks, and independent real Duo reviews. Submission writing, demo recording and eligibility review remain separate tasks.
-
-![Hosted MAYA with a completed Duo review](screenshots/maya-duo-cloud-company-a.png)
+Official rules were reread in Brave on 20 October. Path A permits a new app, CI/CD and automation; GitLab Duo Agent Platform is required. Its supervised example explicitly includes failing-pipeline repair and staging deployment, followed by production approval. Public MIT GitLab source, visible pipeline history, English project description and a public YouTube demo under three minutes remain submission requirements. Building/deploying MAYA is not a submitted Devpost entry or a guarantee of an award.

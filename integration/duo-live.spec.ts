@@ -50,7 +50,7 @@ test("opt-in: a real GitLab Duo review is launched from a recovered company run"
   );
   expect(decision.status()).toBe(200);
   expect((await decision.json()).status).toBe("resolved");
-  await page.goto("/");
+  await page.goto("/?lab=1");
   const field = page.getByLabel("Sandbox access key");
   await expect(page.locator(".boot")).not.toBeVisible();
   if (await field.isVisible()) {

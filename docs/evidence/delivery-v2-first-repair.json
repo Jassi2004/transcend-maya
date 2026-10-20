@@ -1,0 +1,121 @@
+{
+  "schema": "maya-real-delivery-proof-v2",
+  "recordedAt": "2026-10-20T12:19:15.487Z",
+  "repository": "https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43459489/maya-demo-store",
+  "failure": {
+    "id": "66d8b403-d034-4693-94fd-a3cf6ebaeb34",
+    "sourceUrl": "https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43459489/maya-demo-store/-/pipelines/2967309976",
+    "commitSha": "3c7a0903ab0ae63fa527eb7e1c620d04fff3fa07"
+  },
+  "repair": {
+    "planDigest": "738a42d50b7231d9f0a3f49a1821f2edfc8f566925523d70553fc670aaf83940",
+    "files": [
+      {
+        "path": "lib/pricing.js",
+        "originalSha": "d34525dc23b046b0730af7a3dd6368a6710f5fec",
+        "rationale": "Changes the free-shipping comparison from `> 5000` to `>= 5000` so a pre-discount subtotal of exactly $50.00 ships free. This matches the storefront copy and the existing tests. The validation, the $7.99 flat rate, the free shipping on an empty cart, the catalog, the bundle discount and the pre-discount shipping basis in quote() are unchanged. No tests are edited."
+      }
+    ],
+    "publication": {
+      "branch": "maya/repair-66d8b403-d03",
+      "state": "created",
+      "commitSha": "2e9c3baa1d1c9a1c481b58451c32f778d4d8459c",
+      "prNumber": 1,
+      "url": "https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43459489/maya-demo-store/-/merge_requests/1"
+    },
+    "checks": {
+      "sha": "2e9c3baa1d1c9a1c481b58451c32f778d4d8459c",
+      "state": "passing",
+      "items": [
+        {
+          "name": "package_storefront",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43459489/maya-demo-store/-/jobs/17314944282"
+        },
+        {
+          "name": "dependency_audit",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43459489/maya-demo-store/-/jobs/17314944281"
+        },
+        {
+          "name": "syntax_check",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43459489/maya-demo-store/-/jobs/17314944280"
+        },
+        {
+          "name": "unit_tests",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43459489/maya-demo-store/-/jobs/17314944279"
+        }
+      ],
+      "at": "2026-10-20T12:17:30.681Z"
+    },
+    "merge": {
+      "state": "merged",
+      "sha": "45a696d7f527acf8b8abe434d96f63cda3e8e53f",
+      "at": "2026-10-20T12:10:12.547Z",
+      "reason": "Reviewed the actual GitLab MR diff: one inclusive comparison in lib/pricing.js. The exact repair commit passed all unit tests, syntax checks, dependency audit and packaging. Authorise merging into the declared demo staging branch; production is not configured."
+    },
+    "deployment": {
+      "state": "success",
+      "url": "https://maya-demo-store-af3ce5.gitlab.io",
+      "at": "2026-10-20T12:11:47.558Z"
+    },
+    "liveProbe": {
+      "url": "https://maya-demo-store-af3ce5.gitlab.io/version.json",
+      "expectedSha": "45a696d7f527acf8b8abe434d96f63cda3e8e53f",
+      "actualSha": "45a696d7f527acf8b8abe434d96f63cda3e8e53f",
+      "httpStatus": 200,
+      "passed": true,
+      "at": "2026-10-20T12:17:37.049Z"
+    },
+    "status": "resolved"
+  },
+  "duo": [
+    {
+      "sessionId": "9746395",
+      "url": "https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43459489/showcase/-/automate/agent-sessions/9746395",
+      "purpose": "reflect",
+      "state": "complete",
+      "evidenceDigest": "486876214adbcb44da9e5673fa4741e106fa0e553d704137329739ee4b35fc31"
+    },
+    {
+      "sessionId": "9746108",
+      "url": "https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43459489/showcase/-/automate/agent-sessions/9746108",
+      "purpose": "reflect",
+      "state": "complete",
+      "evidenceDigest": "d22ee008bde4892a0298f370585971e79637ba6500aab08702781a654034ff24"
+    },
+    {
+      "sessionId": "9745458",
+      "url": "https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43459489/showcase/-/automate/agent-sessions/9745458",
+      "purpose": "investigate",
+      "state": "complete",
+      "evidenceDigest": "e4fe869ecf110a6939958abac0122640cb05de0b5c643eb6417775f2ab213cc9"
+    },
+    {
+      "sessionId": "9744997",
+      "url": "https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43459489/showcase/-/automate/agent-sessions/9744997",
+      "purpose": "investigate",
+      "state": "complete",
+      "evidenceDigest": "09a24696527256c4d2d195ed800059d2daf8b5b713f62ec6da69b90ebf2d6574"
+    }
+  ],
+  "learning": {
+    "sessionId": "9746395",
+    "lessonId": "43ffaeca-486e-4012-a51c-6f81888af945",
+    "status": "active",
+    "version": 2,
+    "previousVersion": {
+      "lessonId": "8b6f5369-c547-44f6-b1be-d3f8d0973987",
+      "status": "retired",
+      "reason": "Incomplete source and merge provenance in original reflection context; retained in history."
+    },
+    "review": "Reviewed against original failed traces/tests, one-line source repair, actual MR merge linkage, exact-commit green pipelines and deployed revision. Advisory evidence; not model training.",
+    "limitation": "First-session verifier delegation lacked artifacts; actual CI provided independent execution evidence. Delegation handoff strengthened for subsequent sessions."
+  }
+}

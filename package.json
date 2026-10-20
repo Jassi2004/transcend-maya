@@ -1,7 +1,7 @@
 {
   "name": "maya-agent-sandbox",
-  "version": "0.1.0",
-  "description": "Multi-Agent Yard for Automation: an isolated, evidence-first incident simulation lab.",
+  "version": "0.2.0",
+  "description": "MAYA: GitLab Duo workforce for CI/CD source repair, verified staging and reviewed company memory.",
   "private": true,
   "type": "module",
   "engines": {
@@ -33,6 +33,7 @@
     "@fontsource/dm-sans": "^5.3.0",
     "@fontsource/jetbrains-mono": "^5.3.0",
     "@fontsource/manrope": "^5.3.0",
+    "diff": "^8.0.4",
     "express": "^5.1.0",
     "lucide-react": "^0.468.0",
     "react": "^19.2.0",

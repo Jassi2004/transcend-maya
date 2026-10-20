@@ -1,102 +1,86 @@
-# MAYA
+# MAYA · Delivery workforce
 
-**Multi-Agent Yard for Automation.** A company-aware incident lab with evidence, explicit repair approval, independent checks, and reviewed operational memory.
+**Push code. MAYA investigates failed CI, proposes a source repair through GitLab Duo, opens a repair MR, follows its actual checks and verifies the exact revision deployed to staging. Reviewed company lessons guide later investigations.**
 
-MAYA combines **controlled deterministic recovery** with **real GitLab Duo evidence reviews**. Two authenticated demo connectors recover TypeScript booking and Python support services. A separate Duo supervisor delegates to an investigator and verifier; their reports are retained with the frozen evidence and actual session link. Duo does not approve repairs or promote memory.
+MAYA is the separate automation product. [Field Supply](https://maya-demo-store-af3ce5.gitlab.io), a small ecommerce app with real tests and a GitLab Pages pipeline, is its first end-to-end workload. [Store source and pipeline history](https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43459489/maya-demo-store).
 
-## Start locally
+The default dashboard shows the delivery journey, clickable workforce diagram, source diffs, failed-job traces, approvals, CI results, deployed revision and company memory. The older deterministic fault-reset experiment remains available at `/?lab=1`; it is historical and is not the CI/CD repair engine.
 
-Requires Node.js 24+ (production containers use 24).
+## Run locally
+
+Requires Node.js 24–26. No Docker or paid service is required for the local console.
 
 ```sh
 npm ci
-npm run dev
-# http://localhost:4200
-```
-
-Data defaults to `~/.maya/data/maya.sqlite`. Set `DATABASE_PATH` for another location. The default bind is loopback. A network-exposed instance requires `MAYA_ACCESS_TOKEN`; operators enter it on the login page. Tokens are server-side and excluded from agent evidence and exports. The UI session is an HttpOnly, SameSite cookie. Set `SECURE_COOKIE=true` behind HTTPS.
-
-The parent workspace's `./start.sh` builds all three Docker services, creates a private `.env`, connects both companies, and uses durable named volumes. Company A runs on 4100, MAYA on 4200, Company B on 4300. Keep the `.env` private.
-
-For a standalone checkout of this repository, run `./deploy/start.sh`. It pulls the three public GHCR images, generates separate private keys in `deploy/.env`, and starts the connected demo with persistent volumes. Requires Docker Compose and Python 3. Do not run this alongside the parent workspace launcher on the same ports. To stop it, run `docker compose -f deploy/compose.yaml down` from this repository. Use `MAYA_PORT`, `COMPANY_A_PORT`, and `COMPANY_B_PORT` to choose other local ports.
-
-## A complete demo
-
-1. Select Company A. Inject the booking capacity regression.
-2. Watch evidence collection, scoped memory retrieval, diagnosis, a configuration proposal, and independent fixture checks.
-3. Review the exact patch and digest, then approve. A live connector resets only the injected demo fault; real health/behavior probes must pass before the run is resolved.
-4. Open Memory. Inspect the source run and separately approve its candidate lesson.
-5. Inject the same incident again. A valid lesson is reused, and the investigation step is skipped.
-6. Change Runtime context in Environment. This changes metadata, not the service's actual runtime. Repeat the incident: the old lesson is refused and a fresh diagnosis runs.
-7. Switch to Company B. Inject the support priority inversion. The same engine uses a different connector to repair a Python service, with separate memory and evidence.
-8. In an isolated simulation workspace, try an expired credential. The run escalates to its owner and never invents a secret.
-
-The UI includes working company onboarding, run search, a workforce view, approvals, lesson review/retirement, context revision, connection probes, audit records, evidence exports, and a Duo handoff per run. Browser refresh and server restarts preserve SQLite records. Interrupted active work is marked interrupted, never silently resolved.
-
-Repair authorization is saved before the network request. Each live fault has an instance ID, so replacing a fault with another of the same type invalidates the old approval. Failed or interrupted runs offer **Start fresh investigation** without injecting another fault. An approved repair with an uncertain result also offers **Recheck recovery (read-only)**: it probes the service without repeating the write or creating a repair lesson. Injection intents are journaled before external writes, and saved incidents without runs remain accessible after restart.
-
-## What is actually connected
-
-| Capability | V1 status |
-| --- | --- |
-| HTTP observation and authenticated demo configuration recovery | Working for Company A and Company B |
-| Fixture contracts and live post-repair verification | Working |
-| Scoped memory, review, versioning, expiry, stale-runtime rejection | Working |
-| GitHub Actions CI, cross-stack browser checks, and commit-tagged GHCR delivery | Working; see Actions and delivery evidence |
-| GitLab Duo supervisor/specialist flow | Enabled; actual reviews completed for both companies. Per-run API/UI integration verified locally and on Render for both companies |
-| GitHub/GitLab merge requests, arbitrary CI repair, vendor monitoring | Not implemented |
-| Continuous autonomous monitoring or production healing | Not implemented |
-
-No fabricated performance reduction is displayed. Counts come from stored runs. The pool scenario uses an explicitly synthetic queuing model; it is not a production benchmark. Memory is stored playbooks, not model retraining.
-
-## Verify and package
-
-```sh
-npm test
 npm run build
-npx playwright install chromium
-npm run test:e2e
-npm pack
-```
-
-The tarball provides a local CLI (`maya --help`, `maya --port 4200 --data /path/to/maya.sqlite`). It is **private/unpublished** on npm until a package name and release policy are selected. Use `npm exec --package ./maya-agent-sandbox-0.1.0.tgz -- maya --help` to try the bundle. Install the tarball into a local project or use the container for a hosted service; a package does not remove the backend and database.
-
-## Live connector configuration
-
-Set `COMPANY_A_URL`, `COMPANY_A_TOKEN`, `COMPANY_B_URL`, and `COMPANY_B_TOKEN` on the server. Only preconfigured demo URLs can be contacted; onboarding cannot inject arbitrary network destinations or shell commands. A connected company accepts only its supported incident. No agent sees connector tokens. A current fault must still match the captured scenario at recovery time.
-
-If the database was first started without Company A's connector, its seeded workspace remains a simulation. Use a fresh deployment database or configure a new live workspace through the API; a connector is intentionally not silently rebound to an existing tenant.
-
-## Cloud deployment
-
-`render.yaml` defines three free web services and generates connector/access secrets through Render. No payment is required by this blueprint. Free services sleep when idle; warm them before a demo. Their filesystem is ephemeral: **SQLite may reset on restarts/redeploys**. For durable shared hosting, add persistent disks or a managed database after choosing a budget. The local Docker deployment already uses persistent volumes.
-
-Hosted demos: [MAYA](https://maya-yard-jassi.onrender.com), [Company A](https://maya-company-a-jassi.onrender.com), [Company B](https://maya-company-b-jassi.onrender.com). Their health endpoints and the authenticated cross-stack recovery browser journey passed on 20 October. Hosted Duo is configured with a separate server credential, and both companies completed the actual cloud recovery-to-Duo browser journey. See [hosted verification](docs/evidence/hosted-verification.json).
-
-The operator key is `MAYA_ACCESS_TOKEN` in MAYA's Render Environment settings. A free deployment is suitable for synthetic demo data, not customer production use. Current deployment links and verification evidence belong in `docs/DELIVERY.md`.
-
-## GitLab Duo
-
-`.gitlab/duo/flows/incident-review.yml` defines the read-only supervisor, investigator and verifier. [MAYA Incident Review v1.0.0](https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43459489/showcase/-/automate/flows/1018799) is enabled in [Showcase](https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43459489/showcase). Actual reviews completed for [Company A](https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43459489/showcase/-/automate/agent-sessions/9727299) and [Company B](https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43459489/showcase/-/automate/agent-sessions/9727615). See [execution evidence](docs/evidence/duo-reviews.json). These reviewed earlier synthetic handoffs; they do not establish present service health. The actual app/UI bridge also completed [session 9727804](https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43459489/showcase/-/automate/agent-sessions/9727804) after a connected recovery; [frozen evidence and result](docs/evidence/app-duo-review.json) are retained.
-
-To connect the per-run review UI, configure the **server process** (never the browser):
-
-```sh
-export MAYA_DUO_PROJECT_ID=87777593
-export MAYA_DUO_PROJECT_PATH=gitlab-ai-hackathon/transcend-october-2026/43459489/showcase
-export MAYA_DUO_CONSUMER_ID=12818674
-export MAYA_DUO_AUTH=glab
 npm start
 ```
 
-Choose a free `PORT` if the Docker demo already uses 4200. This local mode requires an authenticated `glab` CLI and a loopback host. The CLI retains its credential; MAYA does not extract it. For hosting, omit `MAYA_DUO_AUTH` and configure `MAYA_GITLAB_TOKEN` in server environment settings using a dedicated, short-lived API token whose owner can run the enabled flow in that project. The token is excluded from prompts, exports and UI. Never commit it. Use only a reviewed, read-only enabled flow for this integration.
+Open http://127.0.0.1:4200. Paste a public GitLab.com or GitHub repository URL to discover source, stack, workflows, environment **names** and deployment policy. A URL does not grant access to private third-party infrastructure. Private source and repair publication need a scoped repository token.
 
-Open a completed investigation, check **Share this run’s evidence with GitLab Duo**, then **Review with GitLab Duo**. MAYA freezes and hashes the evidence, calls GitLab's workflow REST API with the enabled consumer and `start_workflow: true`, and polls the exact session through GraphQL. A created session alone is not execution proof: the UI marks execution verified only after `FINISHED`, an agent report and no reported execution errors. Polling never launches another session. Ambiguous submissions remain recorded and require inspecting GitLab rather than blindly retrying. The repair remains a separate, exact-artifact approval.
+For real Duo reasoning, configure a project with an enabled instance of [the delivery flow](.gitlab/duo/flows/delivery-workforce.yml):
 
-The live browser check is deliberately opt-in because it consumes real Duo credits: set `MAYA_DUO_LIVE_TEST=true`, the deployment URLs and operator key, then run `npm run test:connected -- --grep 'opt-in: a real GitLab Duo'`. Routine CI covers the bridge with a fake transport and the UI with mocked GitLab responses; those tests are not represented as actual Duo execution.
+```sh
+export MAYA_DUO_PROJECT_ID=your-project-id
+export MAYA_DUO_PROJECT_PATH=your-group/your-project
+export MAYA_DUO_CONSUMER_ID=your-enabled-flow-consumer-id
+export MAYA_OPS_CONSUMER_ID=your-enabled-delivery-flow-consumer-id
+export MAYA_DUO_AUTH=glab
+export MAYA_GITHUB_AUTH=gh
+npm start
+```
 
-## Security scope
+Authenticate the official `glab`/`gh` CLIs first. CLI authentication is restricted to localhost. Hosted instances use `MAYA_GITLAB_TOKEN` and optional `MAYA_GITHUB_TOKEN`, or per-company encrypted credentials. Keep credentials server-side; never commit them. See [configuration and architecture](docs/ARCHITECTURE.md).
 
-One local/demo operator is the trust boundary. Company IDs scope all records; this is not a finished enterprise multiuser authorization system. No arbitrary user code is executed. Repairs are deterministic configuration changes on explicitly connected fictional demo services. Use synthetic data, HTTPS and an operator key on public deployments. Audit exports may include any text an operator enters. No production credentials belong in onboarding, prompts, or exports.
+## What actually happens
 
-MIT licensed.
+1. The observer polls the repository provider and accepts signed webhooks. A failed **current default-branch pipeline** creates a delivery record with preserved raw evidence.
+2. MAYA captures failed-job traces and source at an immutable commit. It supplies these and eligible reviewed lessons to the GitLab Duo orchestrator, investigator, fixer, verifier and corrector.
+3. Duo returns complete file replacements, original blob identities, a supported diagnosis, requested verification, risks and blocking questions. MAYA validates the artifact and stores the real session and messages.
+4. In assisted mode, review the actual diff and approve its digest. MAYA creates a dedicated branch and MR/PR. A stale base or changed source invalidates approval.
+5. CI runs on the actual repair commit. Failing repair CI can be reinvestigated from fresh logs and refined on the same branch. Supervised retries are bounded by the repository policy.
+6. Merge requires passing exact-commit CI and a current approval. Staging is verified separately: default-branch release CI, successful deployment status and a public version endpoint returning the **exact merged SHA**.
+7. The corrector proposes a lesson from the verified outcome. A separate review activates it. Lessons remain scoped by company, project, category, stack and expiry; they do not retrain a model or authorise writes.
+
+## Assisted and supervised staging
+
+Assisted mode separates publication and merge decisions. Supervised staging must be explicitly enabled in the console, with source-sharing consent, write credentials and a discovered policy in the repository:
+
+```yaml
+# .maya.yml
+version: 1
+staging_branch: main
+staging_environment: staging
+production_requires_approval: true
+max_repair_attempts: 3
+```
+
+High-confidence source-only repairs can then be proposed, published, checked, refined and merged to the declared staging branch. Tests, CI definitions, scripts and package files still need human review. A changed/removed policy disables automatic staging writes. Production deployment is not implemented or implicitly authorised.
+
+For staging verification, configure a public HTTPS endpoint returning JSON such as `{"commit":"<full deployed Git SHA>"}`. GitLab Pages deployment URLs are discovered where project permissions permit.
+
+## Build, tests and package
+
+```sh
+npm run check
+npm test
+npm run build
+npm run test:e2e
+npm run format:check
+npm audit --omit=dev --audit-level=high
+npm pack
+```
+
+The package is an unpublished, installable CLI tarball, `maya-agent-sandbox-0.2.0.tgz`. It bundles the backend, UI and flow definition. It is a service with a database, not a library that runs an entire workforce inside an ecommerce frontend.
+
+Backend tests cover source provenance, scope, signatures, secret redaction, stale/concurrent approvals, protected edits, exact revision verification, memory gates, import authorisation invalidation and encrypted checkpoint recovery. UI tests cover onboarding consent, clickable agents, evidence, actual diffs and approval actions, including mobile layout. Fake provider tests validate controller behaviour; they do not count as real Duo or cloud execution. [Delivery proof](docs/DELIVERY.md) records actual sessions, MRs and staging evidence separately.
+
+## Hosting and limits
+
+[Hosted MAYA](https://maya-yard-jassi.onrender.com) uses an operator key. The existing key is `MAYA_ACCESS_TOKEN` in its Render environment. The free Render filesystem is ephemeral. When a cloud Duo project is configured, MAYA stores compressed **AES-256-GCM encrypted checkpoints** on a separate GitLab branch, `maya-state-v2`, and restores them before starting observers. `MAYA_BACKUP_PROJECT_ID` can select a different backup project. The encryption key is `MAYA_ENCRYPTION_KEY` or the stable operator key; losing/changing it without migration prevents restoration. The UI exposes checkpoint status and supports a credential-free export.
+
+This is a **single operator demo**, not an enterprise multiuser system. Checkpoints run about once a minute, are single-writer and can lose changes since the last checkpoint after a hard crash. Use a persistent disk/database for production. API write outcomes that cannot be confirmed are held for reconciliation rather than retried blindly.
+
+GitLab is the first complete delivery integration. GitHub discovery/PR/check support and several external signal adapters exist, but universal company onboarding and arbitrary production healing are not established. External services require their own access. Source discovery is bounded; large monorepos and new-file proposals are not supported. Repository commands execute in the company’s CI, never on MAYA’s host.
+
+MIT licensed. Built for [Life After Code](https://gitlab-transcend.devpost.com/).

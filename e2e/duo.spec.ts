@@ -46,7 +46,7 @@ test("Duo sharing needs consent, retains the session, and displays reports as te
     };
     await route.fulfill({ json: review });
   });
-  await page.goto("/");
+  await page.goto("/?lab=1");
   await page
     .getByRole("button", { name: "Inject incident", exact: true })
     .click();

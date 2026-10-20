@@ -4,6 +4,11 @@ import { z, ZodError } from "zod";
 import { Engine, DomainError } from "./engine.js";
 import { scenarios } from "./scenarios.js";
 import { DuoBridge, handoff } from "./duo.js";
+import {
+  registerOperationsRoutes,
+  registerOperationsWebhooks,
+} from "./operations/routes.js";
+import type { Operations } from "./operations/service.js";
 import type {
   Company,
   Incident,
@@ -24,12 +29,22 @@ export function createApp(
     accessToken?: string;
     secureCookie?: boolean;
     duo?: DuoBridge;
+    operations?: Operations;
   } = {},
 ) {
   const app = express(),
     store = engine.store;
   app.disable("x-powered-by");
-  app.use(express.json({ limit: "32kb" }));
+  app.use(
+    express.json({
+      limit: "4mb",
+      verify: (req, _res, body) => {
+        if (req.url?.startsWith("/hooks/"))
+          (req as express.Request & { rawBody?: Buffer }).rawBody =
+            Buffer.from(body);
+      },
+    }),
+  );
   const cookieValue = options.accessToken
     ? createHmac("sha256", options.accessToken)
         .update("maya-local-session-v1")
@@ -71,8 +86,8 @@ export function createApp(
     res.json({
       status: "healthy",
       service: "maya",
-      version: "0.1.0",
-      provider: "deterministic",
+      version: "0.2.0",
+      provider: options.operations ? "gitlab-duo-workforce" : "deterministic",
       duoConnected: store
         .companies()
         .some((company) =>
@@ -82,6 +97,8 @@ export function createApp(
         ),
       duoConfigured: !!options.duo,
       buildCommit: process.env.RENDER_GIT_COMMIT || "local",
+      operationsVersion: options.operations ? "2.0" : undefined,
+      workforceConfigured: !!options.operations?.options.workforce,
     });
   });
   app.get("/api/meta", (req, res) =>
@@ -102,6 +119,7 @@ export function createApp(
     );
     res.json({ ok: true });
   });
+  if (options.operations) registerOperationsWebhooks(app, options.operations);
   app.use("/api", (req, res, next) => {
     if (!authenticated(req))
       return res
@@ -306,7 +324,7 @@ export function createApp(
       runs: store.list("runs", company.id),
       lessons: store.list("lessons", company.id),
       audit: store.audits(company.id),
-      provider: "deterministic",
+      provider: options.operations ? "gitlab-duo-workforce" : "deterministic",
       duoConnected: store
         .duoReviews(company.id)
         .some((review) => review.executionVerified),
@@ -346,6 +364,7 @@ export function createApp(
       res.json(await options.duo.refresh(req.params.companyId, req.params.id));
     },
   );
+  if (options.operations) registerOperationsRoutes(app, options.operations);
   app.use("/api", (_req, res) =>
     res.status(404).json({ error: "API route not found." }),
   );

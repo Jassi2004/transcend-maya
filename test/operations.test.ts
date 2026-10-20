@@ -1,0 +1,824 @@
+import { test } from "node:test";
+import assert from "node:assert/strict";
+import { createHmac } from "node:crypto";
+import request from "supertest";
+import { Store } from "../src/server/store.js";
+import { Engine, DomainError } from "../src/server/engine.js";
+import { createApp } from "../src/server/app.js";
+import {
+  OpsStorage,
+  redact,
+  safeSourcePath,
+  sha256,
+} from "../src/server/operations/storage.js";
+import { Operations } from "../src/server/operations/service.js";
+import { Workforce, extractJson } from "../src/server/operations/workforce.js";
+import { GitLab, parseGitLabUrl } from "../src/server/operations/gitlab.js";
+import { parseGitHubUrl } from "../src/server/operations/github.js";
+import {
+  isPublicAddress,
+  publicHttpsUrl,
+} from "../src/server/operations/network.js";
+import {
+  GitLabBackup,
+  openSnapshot,
+  sealSnapshot,
+} from "../src/server/operations/backup.js";
+import type {
+  AgentTask,
+  EvidenceFile,
+  OpsIncident,
+  RepairPlan,
+  Repository,
+} from "../src/shared/operations.js";
+const baseSha = "a".repeat(40),
+  blobSha = "b".repeat(40),
+  repairSha = "c".repeat(40),
+  mergeSha = "d".repeat(40);
+const url = "https://gitlab.com/demo/team/store";
+function setup(
+  options: { protectedEdit?: boolean; supervised?: boolean } = {},
+) {
+  const store = new Store(":memory:"),
+    db = new OpsStorage(store, "operator-secret");
+  for (const id of ["alpha", "beta"])
+    store.saveCompany({
+      id,
+      name: id,
+      stack: "JavaScript",
+      runtime: "Node.js",
+      connector: "simulation",
+      revision: 1,
+      createdAt: new Date().toISOString(),
+    });
+  const policy =
+    "staging_branch: main\nstaging_environment: staging\nproduction_requires_approval: true\nmax_repair_attempts: 3\n";
+  const goals: string[] = [];
+  let head = baseSha,
+    status = "failed",
+    merged = false,
+    liveSha = baseSha,
+    taskStatus = "FINISHED",
+    launches = 0,
+    commits = 0,
+    merges = 0,
+    stalePolicy = false;
+  const sources: Record<string, string> = {
+    "lib/price.js": "export const fee = x => x > 50 ? 0 : 8;\n",
+    "test/price.test.js": "assert.equal(fee(50), 0);\n",
+    ".maya.yml": policy,
+    ".gitlab-ci.yml": "test:\n  script: npm test\n",
+    "package.json": '{"type":"module"}',
+    ".env.example": "PAYMENT_SECRET=do-not-retain-this-value\n",
+  };
+  const sourceBlob = (path: string) =>
+    path === ".maya.yml" ? (stalePolicy ? "e" : "f").repeat(40) : blobSha;
+  const plan: RepairPlan = {
+    title: "Restore inclusive threshold",
+    category: "ci",
+    rootCause:
+      "The boundary is exclusive but the test and source contract require inclusive comparison.",
+    confidence: "high",
+    evidenceIds: [],
+    files: [
+      {
+        path: options.protectedEdit ? "test/price.test.js" : "lib/price.js",
+        originalSha: blobSha,
+        content: "export const fee = x => x >= 50 ? 0 : 8;\n",
+        rationale: "Restore inclusive threshold without weakening any test.",
+      },
+    ],
+    verification: ["npm test"],
+    risks: ["CI has not run yet."],
+    questions: [],
+  };
+  const api = async (
+    path: string,
+    method = "GET",
+    body?: any,
+    raw?: boolean,
+  ): Promise<any> => {
+    const suffix = path.replace(/^projects\/[^/]+/, "");
+    const route = suffix.split("?")[0];
+    if (route === "")
+      return {
+        id: 12,
+        default_branch: "main",
+        visibility: "public",
+        description: "Demo store",
+      };
+    if (route === "/languages") return { JavaScript: 100 };
+    if (route.startsWith("/repository/commits/") && method === "GET")
+      return { id: head };
+    if (route === "/repository/tree")
+      return Object.keys(sources).map((path) => ({
+        path,
+        id: sourceBlob(path),
+        type: "blob",
+      }));
+    if (route.startsWith("/repository/files/")) {
+      const path = decodeURIComponent(route.slice(18));
+      if (!sources[path]) throw new DomainError(404, "Not found");
+      return {
+        blob_id: sourceBlob(path),
+        encoding: "base64",
+        content: Buffer.from(sources[path]).toString("base64"),
+        size: sources[path].length,
+      };
+    }
+    if (route === "/pages") return { url: "https://demo.gitlab.io" };
+    if (route === "/pipelines") {
+      const sha = new URLSearchParams(suffix.split("?")[1]).get("sha");
+      return [
+        {
+          id: sha === repairSha ? 2 : sha === mergeSha ? 3 : 1,
+          iid: 1,
+          ref: "main",
+          sha: sha || head,
+          status: sha ? status : "failed",
+          source: "push",
+          web_url: `${url}/-/pipelines/1`,
+        },
+      ];
+    }
+    if (/^\/pipelines\/\d+\/jobs$/.test(route))
+      return [
+        {
+          id: 10,
+          name: "tests",
+          status: status === "success" ? "success" : "failed",
+          web_url: `${url}/-/jobs/10`,
+        },
+      ];
+    if (route === "/jobs/10/trace")
+      return "Expected fee(50) = 0, received 8, lib/price.js\n";
+    if (route === "/repository/commits" && method === "POST") {
+      commits++;
+      return { id: repairSha, parent_ids: [body.start_sha || repairSha] };
+    }
+    if (route === "/merge_requests" && method === "POST")
+      return {
+        iid: 1,
+        state: "opened",
+        target_branch: "main",
+        sha: repairSha,
+        web_url: `${url}/-/merge_requests/1`,
+      };
+    if (route === "/merge_requests/1")
+      return {
+        iid: 1,
+        state: merged ? "merged" : "opened",
+        target_branch: "main",
+        sha: repairSha,
+        merge_commit_sha: merged ? mergeSha : null,
+        merged_at: new Date().toISOString(),
+        web_url: `${url}/-/merge_requests/1`,
+        merge_status: "can_be_merged",
+      };
+    if (route === "/merge_requests/1/merge") {
+      merges++;
+      merged = true;
+      head = mergeSha;
+      return { state: "merged", merge_commit_sha: mergeSha };
+    }
+    if (route === "/deployments")
+      return merged
+        ? [
+            {
+              id: 9,
+              sha: mergeSha,
+              environment: {
+                name: "staging",
+                external_url: "https://demo.gitlab.io",
+              },
+            },
+          ]
+        : [];
+    if (route === "/deployments/9")
+      return {
+        status: "success",
+        environment: {
+          name: "staging",
+          external_url: "https://demo.gitlab.io",
+        },
+        updated_at: new Date().toISOString(),
+      };
+    throw new Error(`Unhandled fake GitLab request: ${method} ${path}`);
+  };
+  const workforce = new Workforce(
+    db,
+    { projectId: "123", projectPath: "demo/maya", consumerId: "456" },
+    async (path, body: any) => {
+      if (path !== "graphql") {
+        launches++;
+        goals.push(body.goal);
+        return { id: launches, workload: { id: 8 }, status: "created" };
+      }
+      return {
+        data: {
+          duoWorkflowWorkflows: {
+            nodes: [
+              {
+                id: body.variables.workflowId,
+                status: taskStatus,
+                latestCheckpoint: {
+                  errors: [],
+                  duoMessages: [
+                    {
+                      componentName: "orchestrator",
+                      messageType: "agent",
+                      content: goals.at(-1)?.includes('"purpose":"reflect"')
+                        ? JSON.stringify({
+                            title: "Inclusive thresholds",
+                            symptoms: "Exact boundary failed",
+                            rootCause:
+                              "Exclusive comparison violated the captured assertion",
+                            guidance:
+                              "Check the exact boundary and both adjacent values against the advertised contract.",
+                          })
+                        : JSON.stringify(plan),
+                    },
+                  ],
+                },
+              },
+            ],
+          },
+        },
+      };
+    },
+  );
+  const ops = new Operations(db, {
+    workforce,
+    gitlabApi: api,
+    probe: async () => ({
+      status: 200,
+      text: JSON.stringify({ commit: liveSha }),
+    }),
+  });
+  const app = createApp(new Engine(store, undefined, 0), {
+    accessToken: "operator",
+    operations: ops,
+  });
+  return {
+    store,
+    db,
+    ops,
+    app,
+    plan,
+    workforce,
+    api,
+    goals,
+    get counts() {
+      return { launches, commits, merges };
+    },
+    set head(value: string) {
+      head = value;
+    },
+    set status(value: string) {
+      status = value;
+    },
+    set liveSha(value: string) {
+      liveSha = value;
+    },
+    set taskStatus(value: string) {
+      taskStatus = value;
+    },
+    set stalePolicy(value: boolean) {
+      stalePolicy = value;
+    },
+  };
+}
+async function onboard(s: ReturnType<typeof setup>) {
+  return (await s.ops.onboard({ url, companyId: "alpha", shareWithDuo: true }))
+    .repository;
+}
+async function proposed(s: ReturnType<typeof setup>) {
+  const repo = await onboard(s);
+  await s.ops.observe("alpha");
+  const incident = s.db
+    .list<OpsIncident>("incident", "alpha")
+    .find((i) => i.category === "ci")!;
+  const work = await s.ops.investigate("alpha", incident.id);
+  await s.ops.refreshTask("alpha", work.taskId!);
+  return {
+    repo,
+    incident: s.db.get<OpsIncident>("incident", "alpha", incident.id),
+  };
+}
+
+test("repository discovery reads real configuration, retains env names only and starts without write authorisation", async () => {
+  const s = setup();
+  try {
+    const repo = await onboard(s);
+    assert.equal(repo.provider, "gitlab");
+    assert.equal(repo.workflows[0].jobs[0], "test");
+    assert.equal(repo.stagingPolicy?.branch, "main");
+    assert.equal(repo.automationMode, "assisted");
+    assert.ok(repo.envNames.includes("PAYMENT_SECRET"));
+    assert.ok(
+      !JSON.stringify(s.ops.snapshot("alpha")).includes("do-not-retain"),
+    );
+    assert.equal(s.counts.commits, 0);
+    assert.throws(() => s.db.get("repository", "beta", repo.id));
+  } finally {
+    s.store.db.close();
+  }
+});
+
+test("source access, authentication and scoped evidence prevent leaking tokens across company boundaries", async () => {
+  const s = setup();
+  try {
+    const repo = await onboard(s);
+    s.db.setCredential("alpha", "secret", { token: "very-private-value" });
+    const evidence = s.db.evidence({
+      companyId: "alpha",
+      projectId: repo.id,
+      kind: "log",
+      name: "job.log",
+      content:
+        "Authorization=Bearer-abcdef\npassword=hidden\nglpat-abcdefghijklmnop",
+    });
+    assert.ok(!evidence.content.includes("hidden"));
+    assert.ok(!evidence.content.includes("abcdefghijklmnop"));
+    const stored = s.store.db
+      .prepare("SELECT data FROM ops_credentials")
+      .get()!;
+    assert.ok(!String(stored.data).includes("very-private-value"));
+    assert.deepEqual(s.db.credential("alpha", "secret"), {
+      token: "very-private-value",
+    });
+    assert.equal(s.db.credential("beta", "secret"), undefined);
+    assert.equal(
+      (await request(s.app).get("/api/ops/alpha/snapshot")).status,
+      401,
+    );
+    assert.equal(
+      (
+        await request(s.app)
+          .get(`/api/ops/beta/evidence/${evidence.id}`)
+          .auth("operator", { type: "bearer" })
+      ).status,
+      404,
+    );
+    assert.equal(
+      (
+        await request(s.app)
+          .get("/api/ops/alpha/export")
+          .auth("operator", { type: "bearer" })
+      ).text.includes("very-private-value"),
+      false,
+    );
+  } finally {
+    s.store.db.close();
+  }
+});
+
+test("signed GitLab pipeline ingress is scoped, body-authenticated and durably deduplicated", async () => {
+  const s = setup();
+  try {
+    const repo = await onboard(s);
+    const secret = s.ops.webhookSecret("alpha");
+    const payload = {
+      project: { id: repo.remoteProjectId },
+      object_attributes: {
+        id: 8,
+        iid: 8,
+        status: "failed",
+        ref: "main",
+        sha: baseSha,
+      },
+    };
+    const endpoint = "/hooks/alpha/gitlab";
+    assert.equal(
+      (await request(s.app).post(endpoint).send(payload)).status,
+      403,
+    );
+    const one = await request(s.app)
+      .post(endpoint)
+      .set("X-Gitlab-Token", secret)
+      .set("X-Gitlab-Event", "Pipeline Hook")
+      .set("X-Gitlab-Event-UUID", "delivery-8")
+      .send(payload);
+    assert.equal(one.status, 202);
+    assert.equal(
+      (
+        await request(s.app)
+          .post(endpoint)
+          .set("X-Gitlab-Token", secret)
+          .set("X-Gitlab-Event", "Pipeline Hook")
+          .set("X-Gitlab-Event-UUID", "delivery-8")
+          .send(payload)
+      ).body.duplicate,
+      true,
+    );
+    assert.equal(
+      (
+        await request(s.app)
+          .post(endpoint)
+          .set("X-Gitlab-Token", secret)
+          .send({ ...payload, project: { id: 999 } })
+      ).status,
+      403,
+    );
+    assert.equal(s.db.list("incident", "alpha").length, 1);
+  } finally {
+    s.store.db.close();
+  }
+});
+
+test("proposal validation rejects unobserved source, foreign evidence, no-op changes and duplicate paths", async () => {
+  const s = setup();
+  try {
+    const repo = await onboard(s);
+    const task = {
+      state: "complete",
+      report: JSON.stringify(s.plan),
+      evidenceIds: [],
+    } as unknown as AgentTask;
+    const sources = [{ path: "lib/price.js", sha: blobSha, content: "old" }];
+    assert.equal(s.workforce.validatePlan(task, repo, sources).files.length, 1);
+    s.plan.files[0].originalSha = "e".repeat(40);
+    assert.throws(
+      () =>
+        s.workforce.validatePlan(
+          { ...task, report: JSON.stringify(s.plan) },
+          repo,
+          sources,
+        ),
+      /captured source SHA/,
+    );
+    s.plan.files[0].originalSha = blobSha;
+    s.plan.evidenceIds = ["outside-task"];
+    assert.throws(
+      () =>
+        s.workforce.validatePlan(
+          { ...task, report: JSON.stringify(s.plan) },
+          repo,
+          sources,
+        ),
+      /outside this task/,
+    );
+    s.plan.evidenceIds = [];
+    s.plan.files.push(s.plan.files[0]);
+    assert.throws(
+      () =>
+        s.workforce.validatePlan(
+          { ...task, report: JSON.stringify(s.plan) },
+          repo,
+          sources,
+        ),
+      /duplicate/,
+    );
+    assert.throws(() => extractJson("No actual JSON report"));
+    assert.deepEqual(extractJson('Report: ```json\n{"safe":true}\n```'), {
+      safe: true,
+    });
+  } finally {
+    s.store.db.close();
+  }
+});
+
+test("Duo cannot authorise writes; publication is digest-bound and concurrent approvals create only one repair", async () => {
+  const s = setup();
+  try {
+    const { incident } = await proposed(s);
+    assert.equal(incident.status, "awaiting_approval");
+    assert.equal(s.counts.commits, 0);
+    await assert.rejects(
+      () =>
+        s.ops.publish("alpha", incident.id, "0".repeat(64), "invalid approval"),
+      /does not match/,
+    );
+    const results = await Promise.allSettled([
+      s.ops.publish(
+        "alpha",
+        incident.id,
+        incident.planDigest!,
+        "Reviewed exact replacement",
+      ),
+      s.ops.publish(
+        "alpha",
+        incident.id,
+        incident.planDigest!,
+        "Reviewed exact replacement",
+      ),
+    ]);
+    assert.equal(results.filter((r) => r.status === "fulfilled").length, 1);
+    assert.equal(s.counts.commits, 1);
+    assert.equal(
+      s.db.get<OpsIncident>("incident", "alpha", incident.id).status,
+      "pr_open",
+    );
+  } finally {
+    s.store.db.close();
+  }
+});
+
+test("a changed default branch invalidates approval before any source write", async () => {
+  const s = setup();
+  try {
+    const { incident } = await proposed(s);
+    s.head = "e".repeat(40);
+    await assert.rejects(
+      () =>
+        s.ops.publish(
+          "alpha",
+          incident.id,
+          incident.planDigest!,
+          "Reviewed change",
+        ),
+      /default branch changed/,
+    );
+    assert.equal(s.counts.commits, 0);
+  } finally {
+    s.store.db.close();
+  }
+});
+
+test("green repair CI cannot resolve delivery; release requires merge, passing release CI and exact live revision", async () => {
+  const s = setup();
+  try {
+    const { incident } = await proposed(s);
+    await s.ops.publish(
+      "alpha",
+      incident.id,
+      incident.planDigest!,
+      "Review exact source repair",
+    );
+    await assert.rejects(
+      () =>
+        s.ops.merge(
+          "alpha",
+          incident.id,
+          incident.planDigest!,
+          "Merge staging",
+        ),
+      /passing exact-commit/,
+    );
+    s.status = "success";
+    const passing = await s.ops.refreshChecks("alpha", incident.id);
+    assert.equal(passing.status, "pr_open");
+    const before = s.db.list("evidence", "alpha").length;
+    await s.ops.refreshChecks("alpha", incident.id);
+    assert.equal(s.db.list("evidence", "alpha").length, before);
+    await s.ops.merge(
+      "alpha",
+      incident.id,
+      incident.planDigest!,
+      "Approve staging after CI",
+    );
+    const stale = await s.ops.refreshChecks("alpha", incident.id);
+    assert.equal(stale.status, "verifying");
+    assert.equal(stale.deploymentProbe?.passed, false);
+    s.liveSha = mergeSha;
+    const verified = await s.ops.refreshChecks("alpha", incident.id);
+    assert.equal(verified.status, "resolved");
+    assert.equal(verified.deploymentProbe?.expectedSha, mergeSha);
+    const evidenceCount = s.db.list("evidence", "alpha").length,
+      steps = verified.steps.length;
+    await s.ops.refreshChecks("alpha", incident.id);
+    assert.equal(s.db.list("evidence", "alpha").length, evidenceCount);
+    assert.equal(
+      s.db.get<OpsIncident>("incident", "alpha", incident.id).steps.length,
+      steps,
+    );
+  } finally {
+    s.store.db.close();
+  }
+});
+
+test("supervised staging protects tests and stops when its repository policy changes", async () => {
+  const s = setup({ protectedEdit: true });
+  try {
+    await onboard(s);
+    await s.ops.settings("alpha", { automationMode: "supervised" });
+    const incident = s.ops.report("alpha", {
+      title: "Failing test",
+      summary: "The pricing threshold test is failing",
+      category: "ci",
+      severity: "high",
+    });
+    const work = await s.ops.investigate("alpha", incident.id);
+    await s.ops.refreshTask("alpha", work.taskId!);
+    assert.equal(
+      s.db.get<OpsIncident>("incident", "alpha", incident.id).status,
+      "awaiting_approval",
+    );
+    assert.equal(s.counts.commits, 0);
+  } finally {
+    s.store.db.close();
+  }
+  const t = setup();
+  try {
+    await onboard(t);
+    await t.ops.settings("alpha", { automationMode: "supervised" });
+    t.stalePolicy = true;
+    const incident = t.ops.report("alpha", {
+      title: "Pricing failure",
+      summary: "A boundary mismatch occurred",
+      category: "ci",
+      severity: "high",
+    });
+    const work = await t.ops.investigate("alpha", incident.id);
+    await t.ops.refreshTask("alpha", work.taskId!);
+    assert.equal(t.counts.commits, 0);
+    assert.equal(t.ops.repository("alpha").automationMode, "assisted");
+    assert.match(
+      t.db.get<OpsIncident>("incident", "alpha", incident.id).error!,
+      /policy changed/,
+    );
+  } finally {
+    t.store.db.close();
+  }
+});
+
+test("unresolved repairs cannot become active lessons and public imports invalidate all prior authorisation", async () => {
+  const s = setup();
+  try {
+    const { incident } = await proposed(s);
+    await assert.rejects(
+      () => s.ops.reflect("alpha", incident.id),
+      /no published PR/,
+    );
+    const exported = (
+      await request(s.app)
+        .get("/api/ops/alpha/export")
+        .auth("operator", { type: "bearer" })
+    ).body;
+    const t = setup();
+    try {
+      const restored = await request(t.app)
+        .post("/api/ops/restore")
+        .auth("operator", { type: "bearer" })
+        .send(exported);
+      assert.equal(restored.status, 201);
+      const repo = t.ops.repository("alpha");
+      assert.equal(repo.monitoring, false);
+      assert.equal(repo.shareWithDuo, false);
+      assert.equal(repo.automationMode, "assisted");
+      assert.equal(
+        t.db.get<OpsIncident>("incident", "alpha", incident.id).planDigest,
+        undefined,
+      );
+      assert.equal(t.counts.commits, 0);
+    } finally {
+      t.store.db.close();
+    }
+  } finally {
+    s.store.db.close();
+  }
+});
+
+test("corrector receives original logs and test source with the actual merge-to-deployment link; lessons still need review", async () => {
+  const s = setup();
+  try {
+    const { incident } = await proposed(s);
+    await s.ops.publish(
+      "alpha",
+      incident.id,
+      incident.planDigest!,
+      "Review source repair",
+    );
+    s.status = "success";
+    await s.ops.merge(
+      "alpha",
+      incident.id,
+      incident.planDigest!,
+      "Approve staging",
+    );
+    s.liveSha = mergeSha;
+    const work = await s.ops.reflect("alpha", incident.id);
+    const supplied = work.evidenceIds.map((id) =>
+      s.db.get<EvidenceFile>("evidence", "alpha", id),
+    );
+    assert.ok(supplied.some((file) => file.kind === "log"));
+    assert.ok(supplied.some((file) => file.name === "test/price.test.js"));
+    const provenance = JSON.parse(
+      supplied.find((file) => file.name === "merged-repair-provenance.json")!
+        .content,
+    );
+    assert.equal(provenance.mergeRequest.merge_commit_sha, mergeSha);
+    assert.equal(provenance.repairCommit, repairSha);
+    assert.equal(provenance.liveProbe.passed, true);
+    await s.ops.refreshTask("alpha", work.id);
+    const lesson = s.db.list<any>("memory", "alpha")[0];
+    assert.equal(lesson.status, "candidate");
+    assert.equal(
+      s.ops.reviewLesson(
+        "alpha",
+        lesson.id,
+        "promote",
+        "Reviewed actual boundary source, original failure and exact deployed revision",
+      ).status,
+      "active",
+    );
+    s.ops.reviewLesson(
+      "alpha",
+      lesson.id,
+      "retire",
+      "Corrector needs more context",
+    );
+    const fresh = await s.ops.reflect("alpha", incident.id);
+    assert.notEqual(fresh.id, work.id);
+  } finally {
+    s.store.db.close();
+  }
+});
+
+test("encrypted checkpoints authenticate content, preserve scope and restore evidence without plaintext secrets", async () => {
+  const s = setup(),
+    t = setup();
+  try {
+    await onboard(s);
+    s.db.setCredential("alpha", "private", { token: "retained-private-token" });
+    let saved: any;
+    const fake = async (path: string, method = "GET", body?: any) => {
+      if (path.includes("repository/files")) {
+        if (!saved) throw new DomainError(404, "No file");
+        return {
+          content: Buffer.from(saved).toString("base64"),
+          last_commit_id: repairSha,
+        };
+      }
+      if (method === "POST") {
+        saved = body.actions[0].content;
+        return { id: repairSha };
+      }
+      return { default_branch: "main" };
+    };
+    const backup = new GitLabBackup(s.db, fake, "12", "stable-key");
+    await backup.restore();
+    await backup.save();
+    assert.ok(backup.lastSavedAt);
+    assert.ok(!saved.includes("retained-private-token"));
+    assert.ok(!saved.includes("lib/price.js"));
+    assert.throws(() => openSnapshot(saved, "wrong-key"));
+    const envelope = JSON.parse(saved);
+    envelope.tag = Buffer.alloc(16).toString("base64");
+    assert.throws(() => openSnapshot(JSON.stringify(envelope), "stable-key"));
+    const restore = new GitLabBackup(t.db, fake, "12", "stable-key");
+    await restore.restore();
+    assert.equal(
+      t.ops.repository("alpha").fullName,
+      s.ops.repository("alpha").fullName,
+    );
+    assert.deepEqual(t.db.credential("alpha", "private"), {
+      token: "retained-private-token",
+    });
+    assert.equal(t.db.credential("beta", "private"), undefined);
+    const roundtrip = openSnapshot(sealSnapshot({ hello: true }, "key"), "key");
+    assert.equal(roundtrip.hello, true);
+  } finally {
+    s.store.db.close();
+    t.store.db.close();
+  }
+});
+
+test("discovery and probes reject credential URLs, private networks and traversal paths", () => {
+  for (const value of [
+    "not-a-url",
+    "http://gitlab.com/demo/store",
+    "https://user:pass@gitlab.com/demo/store",
+    "https://gitlab.com/demo/store/-/tree/main",
+  ])
+    assert.throws(() => parseGitLabUrl(value));
+  for (const value of [
+    "https://github.com/user/repo/tree/main",
+    "https://user:pass@github.com/user/repo",
+  ])
+    assert.throws(() => parseGitHubUrl(value));
+  assert.equal(parseGitLabUrl(url).fullName, "demo/team/store");
+  for (const value of [
+    "http://example.com",
+    "https://127.0.0.1",
+    "https://10.0.0.2",
+    "https://user:pass@example.com",
+    "https://host.local",
+    "https://example.com:5000",
+  ])
+    assert.throws(() => publicHttpsUrl(value));
+  for (const value of [
+    "127.0.0.1",
+    "169.254.169.254",
+    "10.1.2.3",
+    "192.168.1.1",
+    "::1",
+    "fc00::1",
+    "2001:db8::1",
+  ])
+    assert.equal(isPublicAddress(value), false, value);
+  assert.equal(isPublicAddress("8.8.8.8"), true);
+  for (const path of [
+    "../etc/passwd",
+    ".env",
+    "nested/.env.production",
+    "private.pem",
+    ".git/config",
+    "a\\b",
+  ])
+    assert.equal(safeSourcePath(path), false);
+  assert.equal(
+    redact("https://user:password@example.com"),
+    "https://[REDACTED]@example.com",
+  );
+});

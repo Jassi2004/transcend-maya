@@ -2,7 +2,7 @@ import { test, expect } from "@playwright/test";
 test("a proxy HTML failure displays a useful error and never retries the mutation", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/?lab=1");
   let writes = 0;
   await page.route("**/api/companies/*/incidents", async (route) => {
     writes++;
@@ -33,7 +33,7 @@ test("incident, approval, memory review, repeat recovery, and stale-context reje
 }) => {
   const errors: string[] = [];
   page.on("pageerror", (e) => errors.push(e.message));
-  await page.goto("/");
+  await page.goto("/?lab=1");
   await expect(
     page.getByRole("heading", { name: "Operations, with a memory." }),
   ).toBeVisible();
@@ -122,7 +122,7 @@ test("incident, approval, memory review, repeat recovery, and stale-context reje
 test("an invalidated approval stays visible across polling and a fresh investigation recovers", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/?lab=1");
   await page
     .getByRole("button", { name: "Inject incident", exact: true })
     .click();

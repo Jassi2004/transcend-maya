@@ -21,8 +21,19 @@ export function redact(text: string): string {
       "[REDACTED]",
     )
     .replace(
-      /((?:authorization|password|passwd|secret|api[_-]?key|access[_-]?token|private[_-]?key)\s*[=:]\s*)[^\s,;"'}]+/gi,
-      "$1[REDACTED]",
+      /((?:authorization|password|passwd|secret|api[_-]?key|access[_-]?token|private[_-]?key)\s*[=:]\s*)([^\s,;"'}]+)/gi,
+      (match, prefix: string, value: string, offset: number, input: string) => {
+        // A FastAPI header parameter's builtin type is source syntax, not a
+        // credential. Preserve only this narrow annotation; actual header values
+        // and assignments still go through the credential filter.
+        if (
+          /:\s*$/.test(prefix) &&
+          /^(?:str|bytes)$/.test(value) &&
+          /^\s*=\s*Header\(/.test(input.slice(offset + match.length))
+        )
+          return match;
+        return `${prefix}[REDACTED]`;
+      },
     )
     .replace(
       /-----BEGIN [^-]*PRIVATE KEY-----[\s\S]*?-----END [^-]*PRIVATE KEY-----/g,

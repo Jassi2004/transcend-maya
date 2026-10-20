@@ -41,6 +41,27 @@ const baseSha = "a".repeat(40),
   mergeSha = "d".repeat(40);
 const url = "https://gitlab.com/demo/team/store";
 
+test("credential filtering preserves FastAPI header type annotations through evidence capture", () => {
+  const source =
+    'def demo_fault(body: FaultInput, authorization: str = Header(default="")):\n    pass\n';
+  assert.equal(redact(source), source);
+  assert.equal(
+    redact(JSON.stringify({ path: "app.py", content: source })),
+    JSON.stringify({ path: "app.py", content: source }),
+  );
+  for (const secret of [
+    "authorization: Bearer private-token-value",
+    "authorization=private-token-value",
+    "password: str",
+    "authorization: str",
+    'authorization: arbitrary = Header(default="")',
+    "api_key=ghp_disposablecredential123456789",
+  ]) {
+    assert.notEqual(redact(secret), secret);
+    assert.match(redact(secret), /\[REDACTED\]/);
+  }
+});
+
 test("Actions log redirects reject credentials, private networks and unexpected hosts", async (t) => {
   for (const url of [
     "http://logs.blob.core.windows.net/file",

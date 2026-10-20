@@ -3,7 +3,7 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm ci
 COPY . .
-RUN npm test && npm run build && npm prune --omit=dev
+RUN npm test && npm run build && npm prune --omit=dev && node dist/server/cli.js --help
 FROM node:24-bookworm-slim
 ENV NODE_ENV=production HOST=0.0.0.0 PORT=4200 DATABASE_PATH=/data/maya.sqlite
 WORKDIR /app

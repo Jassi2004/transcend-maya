@@ -16,7 +16,7 @@ import { gitlabRest } from "./operations/gitlab.js";
 import { Workforce } from "./operations/workforce.js";
 if (process.argv.includes("--help")) {
   console.log(
-    "MAYA — Multi-Agent Yard for Automation\n\nUsage: maya [--port 4200] [--data /path/to/maya.sqlite]\n\nEnvironment: PORT, HOST, DATABASE_PATH, MAYA_ACCESS_TOKEN, COMPANY_A_URL, COMPANY_A_TOKEN, COMPANY_B_URL, COMPANY_B_TOKEN\nOptional read-only Duo review: MAYA_DUO_PROJECT_ID, MAYA_DUO_PROJECT_PATH, MAYA_DUO_CONSUMER_ID, plus MAYA_DUO_AUTH=glab (local) or MAYA_GITLAB_TOKEN (server-only).\nNode.js 24+ required. Repository repair proposals run in GitLab Duo. The legacy simulation lab is available at /?lab=1.",
+    "MAYA — Multi-Agent Yard for Automation\n\nUsage: maya [--port 4200] [--data /path/to/maya.sqlite]\n\nEnvironment: PORT, HOST, DATABASE_PATH, MAYA_ACCESS_TOKEN, COMPANY_A_URL, COMPANY_A_TOKEN, COMPANY_B_URL, COMPANY_B_TOKEN\nDelivery workforce: MAYA_DUO_PROJECT_ID, MAYA_DUO_PROJECT_PATH, MAYA_DUO_CONSUMER_ID, MAYA_OPS_CONSUMER_ID, plus MAYA_DUO_AUTH=glab (local) or MAYA_GITLAB_TOKEN (server-only).\nNode.js 24+ required. Repository repair proposals run in GitLab Duo. The legacy simulation lab is available at /?lab=1.",
   );
   process.exit(0);
 }

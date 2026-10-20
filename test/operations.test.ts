@@ -14,7 +14,11 @@ import {
 import { Operations } from "../src/server/operations/service.js";
 import { Workforce, extractJson } from "../src/server/operations/workforce.js";
 import { GitLab, parseGitLabUrl } from "../src/server/operations/gitlab.js";
-import { parseGitHubUrl } from "../src/server/operations/github.js";
+import {
+  parseGitHubUrl,
+  githubLogLocation,
+  githubTransport,
+} from "../src/server/operations/github.js";
 import {
   isPublicAddress,
   publicHttpsUrl,
@@ -36,6 +40,46 @@ const baseSha = "a".repeat(40),
   repairSha = "c".repeat(40),
   mergeSha = "d".repeat(40);
 const url = "https://gitlab.com/demo/team/store";
+
+test("Actions log redirects reject credentials, private networks and unexpected hosts", async (t) => {
+  for (const url of [
+    "http://logs.blob.core.windows.net/file",
+    "https://token@logs.blob.core.windows.net/file",
+    "https://127.0.0.1/file",
+    "https://logs.blob.core.windows.net.attacker.example/file",
+    "https://attacker.example/file",
+  ])
+    assert.throws(() => githubLogLocation(url));
+  assert.equal(
+    githubLogLocation(
+      "https://results.blob.core.windows.net/logs/file?sig=opaque",
+    ),
+    "https://results.blob.core.windows.net/logs/file?sig=opaque",
+  );
+  let requests = 0;
+  t.mock.method(globalThis, "fetch", async (_url: unknown, options: any) => {
+    requests++;
+    assert.equal(options.redirect, "manual");
+    return new Response(null, {
+      status: 302,
+      headers: { location: "https://attacker.example/steal" },
+    });
+  });
+  await assert.rejects(
+    githubTransport("private-repo-token")(
+      "/repos/demo/store/actions/jobs/123/logs",
+      "GET",
+      undefined,
+      true,
+    ),
+    /unexpected log destination/,
+  );
+  assert.equal(
+    requests,
+    1,
+    "No credential-bearing request follows the redirect",
+  );
+});
 function setup(
   options: {
     protectedEdit?: boolean;

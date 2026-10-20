@@ -2,6 +2,21 @@ import { spawn } from "node:child_process";
 import type { Repository, SourceFile } from "../../shared/operations.js";
 import { DomainError } from "../engine.js";
 import { safeSourcePath } from "./storage.js";
+import { publicHttpsUrl, publicRequest } from "./network.js";
+
+export function githubLogLocation(input: string) {
+  const url = publicHttpsUrl(input);
+  if (
+    ![".blob.core.windows.net", ".githubusercontent.com"].some((suffix) =>
+      url.hostname.endsWith(suffix),
+    )
+  )
+    throw new DomainError(
+      502,
+      "GitHub returned an unexpected log destination.",
+    );
+  return url.toString();
+}
 
 export type GitHubTransport = (
   path: string,
@@ -112,7 +127,7 @@ export function githubTransport(
     const response = await fetch(`https://api.github.com${path}`, {
       method,
       body: body === undefined ? undefined : JSON.stringify(body),
-      redirect: "error",
+      redirect: "manual",
       signal: AbortSignal.timeout(35_000),
       headers: {
         Accept: "application/vnd.github+json",
@@ -122,6 +137,23 @@ export function githubTransport(
         ...(body === undefined ? {} : { "Content-Type": "application/json" }),
       },
     });
+    if (
+      response.status === 302 &&
+      raw &&
+      method === "GET" &&
+      /^\/repos\/[\w.-]+\/[\w.-]+\/actions\/jobs\/\d+\/logs$/.test(path)
+    ) {
+      // GitHub uses a short-lived signed object URL for Actions logs. Resolve
+      // only the documented storage hosts, pin public DNS and never forward
+      // the repository token or follow any further redirect.
+      const location = githubLogLocation(
+        response.headers.get("location") || "",
+      );
+      const log = await publicRequest(location, {}, 5_000_000);
+      if (log.status !== 200)
+        throw new DomainError(502, "GitHub Actions log download failed.");
+      return log.text;
+    }
     if (!response.ok)
       throw new DomainError(
         response.status === 404

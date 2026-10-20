@@ -358,6 +358,7 @@ function App() {
           ].map(({ name, icon: Icon }) => (
             <button
               key={name}
+              aria-label={name}
               className={`nav-item ${view === name ? "active" : ""}`}
               onClick={() => setView(name)}
             >
@@ -372,7 +373,11 @@ function App() {
             </button>
           ))}
         </nav>
-        <button className="add-workspace" onClick={() => setDialog("onboard")}>
+        <button
+          className="add-workspace"
+          aria-label="New company"
+          onClick={() => setDialog("onboard")}
+        >
           <Plus size={15} />
           <span>New company</span>
         </button>

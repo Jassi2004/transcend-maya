@@ -90,6 +90,27 @@ test("incident, approval, memory review, repeat recovery, and stale-context reje
     .click();
   await expect(page.getByText("All quiet in the yard.")).toBeVisible();
   await page.setViewportSize({ width: 390, height: 844 });
+  await expect(
+    page.getByLabel("Mobile company workspace", { exact: true }),
+  ).toBeVisible();
+  for (const view of [
+    "Workforce",
+    "Memory",
+    "Evidence",
+    "Environment",
+    "Control room",
+  ]) {
+    await page.getByRole("button", { name: view, exact: true }).click();
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= innerWidth,
+      ),
+    ).toBeTruthy();
+  }
+  await page.getByRole("button", { name: "New company", exact: true }).click();
+  await expect(
+    page.getByRole("button", { name: "Create simulation workspace" }),
+  ).toBeVisible();
   expect(
     await page.evaluate(
       () => document.documentElement.scrollWidth <= window.innerWidth,

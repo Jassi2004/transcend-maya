@@ -6,6 +6,14 @@ export interface ConnectionConfig {
 export type Connections = Partial<
   Record<"company-a" | "company-b", ConnectionConfig>
 >;
+export class ConnectorError extends Error {
+  constructor(
+    readonly status: number,
+    message: string,
+  ) {
+    super(message);
+  }
+}
 export class Connectors {
   constructor(readonly configs: Connections = {}) {}
   config(company: Company) {
@@ -53,23 +61,44 @@ export class Connectors {
     });
     if (result.status !== 200)
       throw new Error(`Fault injection refused (HTTP ${result.status}).`);
+    if (typeof result.body.faultId !== "string" || !result.body.faultId)
+      throw new Error(
+        "The demo service must support fault identity before MAYA can control it.",
+      );
+    return result.body.faultId as string;
   }
-  async repair(company: Company, expectedFault: ScenarioId) {
+  async repair(
+    company: Company,
+    expectedFault: ScenarioId,
+    expectedFaultId: string,
+  ) {
+    if (!expectedFaultId)
+      throw new Error(
+        "Recapture this incident before approving a repair; its fault identity is missing.",
+      );
     const result = await this.request(company, "/api/demo/fault", {
       kind: "none",
       expectedFault,
+      expectedFaultId,
     });
     if (result.status !== 200)
-      throw new Error(`Repair refused (HTTP ${result.status}).`);
+      throw new ConnectorError(
+        result.status,
+        `Repair refused (HTTP ${result.status}).${result.status === 409 ? " The live fault changed; start a fresh investigation." : ""}`,
+      );
   }
   async verify(company: Company): Promise<Check[]> {
     const health = await this.request(company, "/api/health");
     const checks: Check[] = [
       {
-        name: "Live service health returns HTTP 200",
-        expected: 200,
-        actual: health.status,
-        passed: health.status === 200,
+        name: "Live service reports healthy with no active fault",
+        expected: `200 · healthy · ${company.connector} · none`,
+        actual: `${health.status} · ${String(health.body.status)} · ${String(health.body.service)} · ${String(health.body.fault)}`,
+        passed:
+          health.status === 200 &&
+          health.body.service === company.connector &&
+          health.body.status === "healthy" &&
+          health.body.fault === "none",
       },
     ];
     if (company.connector === "company-a") {
@@ -105,12 +134,26 @@ export class Connectors {
     }
     return checks;
   }
-  async observe(company: Company) {
+  async inspect(company: Company) {
     const health = await this.request(company, "/api/health");
-    return [
-      `source=live-http service=${company.connector} status=${health.status}`,
-      `reported_fault=${String(health.body.fault || "none")}`,
-      `observed_at=${new Date().toISOString()}`,
-    ];
+    if (
+      ![200, 503].includes(health.status) ||
+      health.body.service !== company.connector ||
+      typeof health.body.fault !== "string" ||
+      typeof health.body.faultId !== "string"
+    )
+      throw new Error(
+        "The connector did not return the expected service identity and fault evidence.",
+      );
+    return {
+      fault: health.body.fault as string,
+      faultId: health.body.faultId as string,
+      evidence: [
+        `source=live-http service=${company.connector} status=${health.status}`,
+        `reported_fault=${String(health.body.fault || "none")}`,
+        `fault_id=${health.body.faultId}`,
+        `observed_at=${new Date().toISOString()}`,
+      ],
+    };
   }
 }

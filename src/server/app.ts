@@ -52,7 +52,7 @@ export function createApp(
     if (!["GET", "HEAD", "OPTIONS"].includes(req.method)) {
       const origin = req.get("origin");
       const host = req.get("host");
-      if (origin && new URL(origin).host !== host)
+      if (origin && (!URL.canParse(origin) || new URL(origin).host !== host))
         return res
           .status(403)
           .json({ error: "Cross-origin changes are not allowed." });
@@ -193,7 +193,10 @@ export function createApp(
         .object({ runtime: z.string().trim().min(2).max(40) })
         .strict()
         .parse(req.body);
-    if (store.list<Run>("runs", company.id).some((r) => r.status === "running"))
+    if (
+      engine.injections.has(company.id) ||
+      store.list<Run>("runs", company.id).some((r) => r.status === "running")
+    )
       throw new DomainError(
         409,
         "Wait for the active run to finish before changing context.",
@@ -229,6 +232,9 @@ export function createApp(
   });
   app.post("/api/companies/:companyId/incidents/:id/run", (req, res) =>
     res.status(201).json(engine.start(req.params.companyId, req.params.id)),
+  );
+  app.post("/api/companies/:companyId/runs/:id/recheck", async (req, res) =>
+    res.json(await engine.recheck(req.params.companyId, req.params.id)),
   );
   app.post("/api/companies/:companyId/runs/:id/decision", async (req, res) => {
     const { decision, digest, reason } = z

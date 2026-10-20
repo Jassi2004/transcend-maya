@@ -1,4 +1,33 @@
 import { test, expect } from "@playwright/test";
+test("a proxy HTML failure displays a useful error and never retries the mutation", async ({
+  page,
+}) => {
+  await page.goto("/");
+  let writes = 0;
+  await page.route("**/api/companies/*/incidents", async (route) => {
+    writes++;
+    await route.fulfill({
+      status: 502,
+      contentType: "text/html",
+      body: "<!DOCTYPE html><title>Proxy unavailable</title>",
+    });
+  });
+  await page
+    .getByRole("button", { name: "Inject incident", exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: "Inject & investigate", exact: true })
+    .click();
+  const error = page.getByRole("alert");
+  await expect(error).toContainText(
+    "Server returned an unreadable response (HTTP 502)",
+  );
+  await page.waitForResponse((response) =>
+    response.url().includes("/snapshot"),
+  );
+  await expect(error).toContainText("inspect the saved run before retrying");
+  expect(writes).toBe(1);
+});
 test("incident, approval, memory review, repeat recovery, and stale-context rejection", async ({
   page,
 }) => {
@@ -67,4 +96,49 @@ test("incident, approval, memory review, repeat recovery, and stale-context reje
     ),
   ).toBeTruthy();
   expect(errors).toEqual([]);
+});
+
+test("an invalidated approval stays visible across polling and a fresh investigation recovers", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page
+    .getByRole("button", { name: "Inject incident", exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: "Inject & investigate", exact: true })
+    .click();
+  await expect(
+    page.getByRole("button", { name: "Approve exact repair" }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Environment", exact: true }).click();
+  await page.getByLabel("Runtime context").fill("Node.js 25");
+  await page.getByRole("button", { name: "Update context revision" }).click();
+  await expect(
+    page.getByText(
+      "Context updated. Old lessons will be checked against the new runtime.",
+      { exact: true },
+    ),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Control room", exact: true }).click();
+  await page.getByRole("button", { name: "Approve exact repair" }).click();
+  const error = page.getByRole("alert");
+  await expect(error).toContainText("Company context changed");
+  await page.waitForResponse((response) =>
+    response.url().includes("/snapshot"),
+  );
+  await expect(error).toContainText("Company context changed");
+  await page.getByRole("button", { name: "Reject proposal" }).click();
+  await page
+    .getByRole("button", { name: "Start fresh investigation", exact: true })
+    .click();
+  await expect(
+    page.getByRole("button", { name: "Approve exact repair" }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Approve exact repair" }).click();
+  await expect(
+    page.getByRole("heading", {
+      name: "Recovery verified. Evidence retained.",
+    }),
+  ).toBeVisible();
 });

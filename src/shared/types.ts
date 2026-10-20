@@ -56,6 +56,7 @@ export interface Incident {
   status: string;
   context: Fixture;
   evidence: string[];
+  faultId?: string;
   createdAt: string;
 }
 export interface Step {
@@ -79,6 +80,7 @@ export interface Verification {
   baseline: Check[];
   candidate: Check[];
   live?: Check[];
+  livePhase?: "before_repair" | "after_repair";
 }
 export interface MemoryMatch {
   kind: "new" | "reused" | "rejected";
@@ -102,6 +104,9 @@ export interface Run {
   createdAt: string;
   finishedAt: string | null;
   durationMs: number | null;
+  faultId?: string;
+  approval?: { digest: string; reason: string; at: string };
+  recoveryRechecked?: boolean;
 }
 export interface Lesson {
   id: string;

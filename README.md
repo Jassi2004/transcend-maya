@@ -33,6 +33,8 @@ For a standalone checkout of this repository, run `./deploy/start.sh`. It pulls 
 
 The UI includes working company onboarding, run search, a workforce view, approvals, lesson review/retirement, context revision, connection probes, audit records, evidence exports, and a Duo handoff per run. Browser refresh and server restarts preserve SQLite records. Interrupted active work is marked interrupted, never silently resolved.
 
+Repair authorization is saved before the network request. Each live fault has an instance ID, so replacing a fault with another of the same type invalidates the old approval. Failed or interrupted runs offer **Start fresh investigation** without injecting another fault. An approved repair with an uncertain result also offers **Recheck recovery (read-only)**: it probes the service without repeating the write or creating a repair lesson. Injection intents are journaled before external writes, and saved incidents without runs remain accessible after restart.
+
 ## What is actually connected
 
 | Capability | V1 status |

@@ -136,21 +136,65 @@ export class Store {
       }),
     );
   }
+  decision(
+    companyId: string,
+    runId: string,
+  ):
+    | { decision: string; digest: string; reason: string; at: string }
+    | undefined {
+    const row = this.db
+      .prepare("SELECT data FROM decisions WHERE companyId=? AND runId=?")
+      .get(companyId, runId);
+    return row ? JSON.parse(String(row.data)) : undefined;
+  }
   recover() {
-    for (const row of this.db
-      .prepare("SELECT data FROM runs WHERE status='running'")
-      .all()) {
-      const r = JSON.parse(String(row.data)) as Run;
-      r.status = "interrupted";
-      r.stage = "Interrupted by restart";
-      r.finishedAt = new Date().toISOString();
-      this.saveRun(r);
-      this.audit(
-        r.companyId,
-        "run.interrupted",
-        "An unfinished run was interrupted by a server restart.",
-        { runId: r.id },
-      );
-    }
+    this.transaction(() => {
+      for (const row of this.db
+        .prepare("SELECT data FROM runs WHERE status='running'")
+        .all()) {
+        const r = JSON.parse(String(row.data)) as Run;
+        r.status = "interrupted";
+        r.stage = "Interrupted by restart";
+        r.finishedAt = new Date().toISOString();
+        r.durationMs = Date.now() - new Date(r.createdAt).getTime();
+        r.steps.push({
+          id: randomUUID(),
+          agent: "supervisor",
+          title: "Interrupted by restart",
+          detail: r.approval
+            ? "Authorization was retained. Inspect the service or use a read-only recheck; the repair will not be repeated automatically."
+            : "No recovery was confirmed. Start a fresh investigation to continue.",
+          state: "warning",
+          at: r.finishedAt,
+        });
+        this.saveRun(r);
+        this.audit(
+          r.companyId,
+          "run.interrupted",
+          "An unfinished run was interrupted by a server restart.",
+          { runId: r.id },
+        );
+      }
+      // Reconcile incident summaries, including data written by earlier V1 versions.
+      for (const company of this.companies()) {
+        const runs = this.list<Run>("runs", company.id);
+        for (const incident of this.list<Incident>("incidents", company.id)) {
+          const latest = runs.find((r) => r.incidentId === incident.id);
+          const status =
+            latest?.status ||
+            (incident.status === "injecting" ? "interrupted" : incident.status);
+          if (incident.status !== status) {
+            incident.status = status;
+            this.saveIncident(incident);
+            this.audit(
+              company.id,
+              "incident.reconciled",
+              "Incident summary reconciled with its saved run after restart.",
+              { incidentId: incident.id, status },
+            );
+          }
+        }
+      }
+    });
   }
 }

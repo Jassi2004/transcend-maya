@@ -1,7 +1,7 @@
 name: maya-demo
 services:
   company-a:
-    image: ghcr.io/jassi2004/transcend-company-a:latest
+    image: ${COMPANY_A_IMAGE:-ghcr.io/jassi2004/transcend-company-a:c6e4648fdc9c91930f7b6fe9708424fb8f3571ac}
     restart: unless-stopped
     ports: ["127.0.0.1:${COMPANY_A_PORT:-4100}:4100"]
     environment:
@@ -9,7 +9,7 @@ services:
       SANDBOX_TOKEN: ${COMPANY_A_TOKEN:?Run deploy/start.sh first}
     volumes: ["company-a-data:/data"]
   company-b:
-    image: ghcr.io/jassi2004/transcend-company-b:latest
+    image: ${COMPANY_B_IMAGE:-ghcr.io/jassi2004/transcend-company-b:7f104f3ae9662fe5771ffc621cd97c6c3b18ebd3}
     restart: unless-stopped
     ports: ["127.0.0.1:${COMPANY_B_PORT:-4300}:4300"]
     environment:

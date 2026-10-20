@@ -144,7 +144,6 @@ export function verifyFixture(id: ScenarioId, f: Fixture): Check[] {
           true,
           f.priority === "critical",
         ),
-        check("No customer content is changed", true, true),
       ];
     case "expired-credential":
       return [

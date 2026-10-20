@@ -277,3 +277,85 @@ test("active runs are deduplicated and retired lessons remain in history", async
     store.db.close();
   }
 });
+
+test("active memory is checked against its approved source before reuse", async () => {
+  const { store, engine } = setup();
+  try {
+    const source = await pending(engine);
+    await engine.approve(
+      "alpha",
+      source.id,
+      source.proposal!.digest,
+      "Reviewed",
+    );
+    const lesson = store.list<Lesson>("lessons", "alpha")[0];
+    engine.review("alpha", lesson.id, "promote");
+    lesson.status = "active";
+    lesson.patch = { capacity: 4, credentialValid: false };
+    store.saveLesson(lesson);
+    const repeat = await pending(engine);
+    assert.equal(repeat.memory.kind, "rejected");
+    assert.deepEqual(repeat.proposal!.patch, { capacity: 4 });
+    assert.equal(repeat.proposal!.after.credentialValid, true);
+  } finally {
+    store.db.close();
+  }
+});
+
+test("malformed lesson expiry cannot pass provenance review", async () => {
+  const { store, engine } = setup();
+  try {
+    const run = await pending(engine);
+    await engine.approve("alpha", run.id, run.proposal!.digest, "Reviewed");
+    const lesson = store.list<Lesson>("lessons", "alpha")[0];
+    lesson.expiresAt = "invalid date";
+    store.saveLesson(lesson);
+    assert.throws(
+      () => engine.review("alpha", lesson.id, "promote"),
+      /invalid/,
+    );
+  } finally {
+    store.db.close();
+  }
+});
+
+test("reviewed playbooks from the original V1 approval format remain usable after upgrade", async () => {
+  const { store, engine } = setup();
+  try {
+    const source = await pending(engine);
+    await engine.approve(
+      "alpha",
+      source.id,
+      source.proposal!.digest,
+      "Reviewed",
+    );
+    const lesson = store.list<Lesson>("lessons", "alpha")[0];
+    engine.review("alpha", lesson.id, "promote");
+    const old = engine.run("alpha", source.id);
+    delete old.approval;
+    const { createHash } = await import("node:crypto");
+    old.proposal!.digest = createHash("sha256")
+      .update(
+        JSON.stringify({
+          companyId: old.companyId,
+          revision: old.contextRevision,
+          incidentId: old.incidentId,
+          before: old.proposal!.before,
+          after: old.proposal!.after,
+          action: old.proposal!.action,
+        }),
+      )
+      .digest("hex");
+    store.saveRun(old);
+    const decision = store.decision("alpha", old.id)!;
+    store.db
+      .prepare("UPDATE decisions SET data=? WHERE runId=?")
+      .run(
+        JSON.stringify({ ...decision, digest: old.proposal!.digest }),
+        old.id,
+      );
+    assert.equal((await pending(engine)).memory.kind, "reused");
+  } finally {
+    store.db.close();
+  }
+});

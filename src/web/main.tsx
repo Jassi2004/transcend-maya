@@ -69,7 +69,14 @@ async function api<T>(path: string, init?: RequestInit): Promise<T> {
     ...init,
     headers: { "Content-Type": "application/json", ...init?.headers },
   });
-  const body = await res.json();
+  let body;
+  try {
+    body = await res.json();
+  } catch {
+    throw new Error(
+      `Server returned an unreadable response (HTTP ${res.status}). Check the connection and inspect the saved run before retrying.`,
+    );
+  }
   if (!res.ok) throw new Error(body.error || "Request failed.");
   return body;
 }
@@ -170,6 +177,7 @@ function App() {
     [selected, setSelected] = useState(""),
     [query, setQuery] = useState(""),
     [error, setError] = useState(""),
+    [connectionError, setConnectionError] = useState(""),
     [toast, setToast] = useState(""),
     [dialog, setDialog] = useState<"launch" | "onboard" | null>(null),
     [review, setReview] = useState<Lesson | null>(null),
@@ -197,9 +205,9 @@ function App() {
       if (selectedCompany.current !== id) return;
       setData(snapshot);
       setCompanies(snapshot.companies);
-      setError("");
+      setConnectionError("");
     } catch (e) {
-      setError((e as Error).message);
+      setConnectionError((e as Error).message);
     }
   }
   useEffect(() => {
@@ -235,6 +243,7 @@ function App() {
     message: string,
   ) {
     setBusy(name);
+    setError("");
     try {
       await fn();
       await refresh();
@@ -492,11 +501,17 @@ function App() {
               </button>
             </div>
           </div>
-          {error && (
+          {(error || connectionError) && (
             <div className="error-banner" role="alert">
               <TriangleAlert size={16} />
-              <span>{error}</span>
-              <button onClick={() => setError("")} aria-label="Dismiss error">
+              <span>{error || connectionError}</span>
+              <button
+                onClick={() => {
+                  setError("");
+                  setConnectionError("");
+                }}
+                aria-label="Dismiss error"
+              >
                 <X size={15} />
               </button>
             </div>
@@ -622,29 +637,63 @@ function App() {
                             </div>
                           </button>
                         ))}
-                        {!runs.length && (
-                          <div className="list-empty">
-                            <Radio size={25} />
-                            <strong>
-                              {query
-                                ? "Nothing matches yet."
-                                : "All quiet in the yard."}
-                            </strong>
-                            <p>
-                              {query
-                                ? "Try another search."
-                                : "Inject a controlled incident to watch the workforce respond."}
-                            </p>
-                            {!query && (
-                              <button
-                                className="text-button"
-                                onClick={() => setDialog("launch")}
-                              >
-                                Start your first run <ArrowRight size={13} />
-                              </button>
-                            )}
-                          </div>
-                        )}
+                        {data.incidents
+                          .filter(
+                            (i) =>
+                              !data.runs.some((r) => r.incidentId === i.id) &&
+                              i.status !== "resolved",
+                          )
+                          .map((i) => (
+                            <button
+                              className="run-item"
+                              key={i.id}
+                              disabled={!!busy}
+                              onClick={() =>
+                                void action(
+                                  i.id,
+                                  async () => {
+                                    const next = await api<Run>(
+                                      `${prefix}/incidents/${i.id}/run`,
+                                      { method: "POST", body: "{}" },
+                                    );
+                                    setSelected(next.id);
+                                  },
+                                  "Saved incident opened for a fresh investigation.",
+                                )
+                              }
+                            >
+                              <strong>{i.title}</strong>
+                              <span>Investigate saved incident</span>
+                            </button>
+                          ))}
+                        {!runs.length &&
+                          !data.incidents.some(
+                            (i) =>
+                              !data.runs.some((r) => r.incidentId === i.id) &&
+                              i.status !== "resolved",
+                          ) && (
+                            <div className="list-empty">
+                              <Radio size={25} />
+                              <strong>
+                                {query
+                                  ? "Nothing matches yet."
+                                  : "All quiet in the yard."}
+                              </strong>
+                              <p>
+                                {query
+                                  ? "Try another search."
+                                  : "Inject a controlled incident to watch the workforce respond."}
+                              </p>
+                              {!query && (
+                                <button
+                                  className="text-button"
+                                  onClick={() => setDialog("launch")}
+                                >
+                                  Start your first run <ArrowRight size={13} />
+                                </button>
+                              )}
+                            </div>
+                          )}
                       </div>
                       <div className="list-footer">
                         <Shield size={12} />
@@ -654,6 +703,7 @@ function App() {
                     <section className="panel run-panel">
                       {run ? (
                         <RunDetail
+                          key={run.id}
                           run={run}
                           title={
                             data.incidents.find((i) => i.id === run.incidentId)
@@ -661,6 +711,30 @@ function App() {
                           }
                           company={data.company}
                           busy={busy}
+                          retry={() =>
+                            void action(
+                              run.id,
+                              async () => {
+                                const next = await api<Run>(
+                                  `${prefix}/incidents/${run.incidentId}/run`,
+                                  { method: "POST", body: "{}" },
+                                );
+                                setSelected(next.id);
+                              },
+                              "Fresh investigation started. No new fault was injected.",
+                            )
+                          }
+                          recheck={() =>
+                            void action(
+                              run.id,
+                              () =>
+                                api(`${prefix}/runs/${run.id}/recheck`, {
+                                  method: "POST",
+                                  body: "{}",
+                                }),
+                              "Read-only recheck completed. No repair was repeated.",
+                            )
+                          }
                           decide={(decision, reason) =>
                             void action(
                               run.id,
@@ -1195,6 +1269,8 @@ function RunDetail({
   decide,
   handoff,
   openMemory,
+  retry,
+  recheck,
 }: {
   run: Run;
   title: string;
@@ -1203,6 +1279,8 @@ function RunDetail({
   decide: (d: "approve" | "reject", reason: string) => void;
   handoff: () => void;
   openMemory: () => void;
+  retry: () => void;
+  recheck: () => void;
 }) {
   const [reason, setReason] = useState(
     "Reviewed the exact patch and verification evidence.",
@@ -1388,7 +1466,10 @@ function RunDetail({
               <h4>
                 <Globe size={12} />
                 Live service checks{" "}
-                {run.status === "resolved" ? "after repair" : "before repair"}
+                {run.verification.livePhase === "after_repair" ||
+                run.status === "resolved"
+                  ? "after repair"
+                  : "before repair"}
               </h4>
               {run.verification.live.map((c) => (
                 <div key={c.name}>
@@ -1461,9 +1542,11 @@ function RunDetail({
           <div>
             <h3>Recovery verified. Evidence retained.</h3>
             <p>
-              {run.memory.kind === "reused"
-                ? "An existing verified lesson helped guide this recovery."
-                : "A candidate lesson is ready for separate operator review."}
+              {run.recoveryRechecked
+                ? "Current health was confirmed by a read-only recheck. No lesson was created from the uncertain repair."
+                : run.memory.kind === "reused"
+                  ? "An existing verified lesson helped guide this recovery."
+                  : "A candidate lesson is ready for separate operator review."}
             </p>
             <button className="text-button" onClick={openMemory}>
               Open company memory <ArrowRight size={13} />
@@ -1487,6 +1570,28 @@ function RunDetail({
                 ? "The proposed repair was not applied. For connected demos, the injected fault remains until a later repair or manual reset."
                 : "Inspect the evidence and address the blocker before starting another run."}
             </p>
+            {run.status !== "escalated" && (
+              <div className="recovery-actions">
+                <button
+                  className="button secondary"
+                  disabled={!!busy}
+                  onClick={retry}
+                >
+                  Start fresh investigation
+                </button>
+                {run.mode === "connected" &&
+                  run.approval &&
+                  ["failed", "interrupted"].includes(run.status) && (
+                    <button
+                      className="button secondary"
+                      disabled={!!busy}
+                      onClick={recheck}
+                    >
+                      Recheck recovery (read-only)
+                    </button>
+                  )}
+              </div>
+            )}
           </div>
         </div>
       )}

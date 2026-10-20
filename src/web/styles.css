@@ -1427,6 +1427,12 @@ h1 > span {
   font-size: 9px;
   font-weight: 500;
 }
+.recovery-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+}
 .stopped-panel p {
   font-size: 8px;
   line-height: 1.8;

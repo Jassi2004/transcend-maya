@@ -26,13 +26,15 @@ A run is finite and tied to a company/context revision. No worker is an always-r
 
 SQLite records use a company foreign key. Every lookup for incidents, runs, lessons, audit and evidence exports includes that scope. This is logical isolation under one operator; production multiuser authorization, per-tenant credentials, external secret management, retention quotas, and rate limiting remain future work.
 
-Approval is checked against a SHA-256 digest of company, incident, context revision, before/after fixtures and action. A changed revision or mismatched fault refuses the old repair. The same run cannot be approved twice. A connected demo fault is conditionally reset, then live behavior must pass. Failed or interrupted runs do not become resolved lessons.
+Approval is checked against a SHA-256 digest of company, incident, context revision, before/after fixtures, patch, scope, action and live fault instance ID. Both company APIs check that ID and the fault type within the same database transaction as the reset. A replacement fault of the same type therefore refuses the old repair. Authorization and its audit event are committed before the network write. The same run cannot be approved twice. A connected demo fault is conditionally reset, then live behavior must pass.
+
+Injection intent is saved before contacting a company. A lost response retains the incident and requires fresh live evidence. Restart recovery marks unfinished runs and incident summaries interrupted; it never repeats a write. An approved but uncertain recovery can be rechecked through a read-only operation. This may confirm current health, but creates no causal repair lesson. Retrying an investigation refreshes the evidence without injecting another fault. Live mutation and recheck tasks are included in graceful shutdown waiting.
 
 The verifier executes contract assertions against captured baseline and candidate fixtures. Live connectors separately query actual health/availability/classification. Fixture success alone is never shown as live recovery. Because this V1 uses a deterministic scenario recipe, it does not discover arbitrary bugs or edit application source.
 
 ## Memory
 
-Active lessons must match company, scenario, runtime and expiry. A candidate comes from a successfully approved and verified run. Promotion revalidates its source and patch identity. Retirement preserves records. There is no silent knowledge deletion or model fine-tuning. A revision change invalidates pending approval; a runtime change also refuses lessons for the old runtime.
+Active lessons must match company, scenario, runtime and a valid expiry. A candidate comes from a successfully approved and verified run. Both promotion and every reuse revalidate the source artifact, durable authorization, patch identity and verification evidence. The original V1 digest format remains readable for historical playbooks. Rechecked uncertain recoveries are excluded. Retirement preserves records. There is no silent knowledge deletion or model fine-tuning. A revision change invalidates pending approval; a runtime change also refuses lessons for the old runtime.
 
 ## Packaging
 

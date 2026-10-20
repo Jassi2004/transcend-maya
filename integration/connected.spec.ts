@@ -13,6 +13,17 @@ if (!key) {
       .join("=");
   } catch {}
 }
+test.beforeAll(async ({ request }) => {
+  for (const url of [
+    process.env.MAYA_URL || "http://127.0.0.1:4200",
+    process.env.COMPANY_A_URL || "http://127.0.0.1:4100",
+    process.env.COMPANY_B_URL || "http://127.0.0.1:4300",
+  ]) {
+    const health = await request.get(`${url}/api/health`, { timeout: 30000 });
+    expect(health.status(), `Demo endpoint unavailable: ${url}`).toBe(200);
+    expect((await health.json()).status).toBe("healthy");
+  }
+});
 test("real TypeScript booking and Python support services recover through the same MAYA engine", async ({
   page,
   request,
@@ -60,6 +71,7 @@ test("real TypeScript booking and Python support services recover through the sa
         ? process.env.COMPANY_A_URL || "http://127.0.0.1:4100"
         : process.env.COMPANY_B_URL || "http://127.0.0.1:4300";
     let affectedTicketId = "";
+    let originalTicket: Record<string, unknown> = {};
     if (company === "Company A") {
       const date = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
       const slots = await request.get(
@@ -102,6 +114,7 @@ test("real TypeScript booking and Python support services recover through the sa
       const body = await affected.json();
       expect(body.priority).toBe("low");
       affectedTicketId = body.id;
+      originalTicket = body;
     }
     await page.getByRole("button", { name: "Approve exact repair" }).click();
     await expect(
@@ -113,10 +126,20 @@ test("real TypeScript booking and Python support services recover through the sa
     if (affectedTicketId) {
       const response = await request.get(`${companyUrl}/api/overview`);
       const body = await response.json();
-      expect(
-        body.tickets.find((t: { id: string }) => t.id === affectedTicketId)
-          .priority,
-      ).toBe("critical");
+      const repaired = body.tickets.find(
+        (t: { id: string }) => t.id === affectedTicketId,
+      );
+      expect(repaired.priority).toBe("critical");
+      for (const field of [
+        "subject",
+        "description",
+        "requester",
+        "email",
+        "severity",
+        "createdAt",
+        "status",
+      ])
+        expect(repaired[field]).toEqual(originalTicket[field]);
     }
     await page.evaluate(() => window.scrollTo(0, 0));
     await page.screenshot({
@@ -168,4 +191,80 @@ test("real TypeScript booking and Python support services recover through the sa
   await row.getByRole("button", { name: "Cancel", exact: true }).click();
   await expect(row.getByText("cancelled", { exact: true })).toBeVisible();
   expect(errors).toEqual([]);
+});
+
+test("same-kind fault replacement refuses stale approval and a fresh live investigation recovers", async ({
+  page,
+  request,
+}) => {
+  let connectorKey = process.env.COMPANY_A_TOKEN;
+  if (!connectorKey) {
+    connectorKey = readFileSync(resolve("../.env"), "utf8")
+      .split("\n")
+      .find((l) => l.startsWith("COMPANY_A_TOKEN="))
+      ?.slice("COMPANY_A_TOKEN=".length);
+  }
+  if (!connectorKey)
+    throw new Error(
+      "Set COMPANY_A_TOKEN to verify the actual demo fault identity boundary.",
+    );
+  await page.goto("/");
+  await expect(page.locator(".boot")).not.toBeVisible({ timeout: 15000 });
+  const keyField = page.getByLabel("Sandbox access key");
+  if (await keyField.isVisible()) {
+    if (!key) throw new Error("Set MAYA_ACCESS_TOKEN.");
+    await keyField.fill(key);
+    await page.getByRole("button", { name: "Open MAYA" }).click();
+  }
+  await page
+    .getByLabel("Company workspace", { exact: true })
+    .selectOption({ label: "Company A" });
+  await page
+    .getByRole("button", { name: "Inject incident", exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: "Inject & investigate", exact: true })
+    .click();
+  await expect(
+    page.getByRole("button", { name: "Approve exact repair" }),
+  ).toBeVisible({ timeout: 90000 });
+  const companyUrl = process.env.COMPANY_A_URL || "http://127.0.0.1:4100";
+  const replaced = await request.post(`${companyUrl}/api/demo/fault`, {
+    headers: { Authorization: `Bearer ${connectorKey}` },
+    data: { kind: "capacity-regression" },
+  });
+  expect(replaced.status()).toBe(200);
+  const replacementId = (await replaced.json()).faultId;
+  const decisionResponse = page.waitForResponse(
+    (response) =>
+      response.url().endsWith("/decision") &&
+      response.request().method() === "POST",
+  );
+  await page.getByRole("button", { name: "Approve exact repair" }).click();
+  expect((await decisionResponse).status()).toBe(409);
+  await expect(page.getByRole("alert")).toContainText("live fault changed");
+  await expect(
+    page.getByRole("button", { name: "Recheck recovery (read-only)" }),
+  ).toBeVisible();
+  expect(
+    (await (await request.get(`${companyUrl}/api/health`)).json()).faultId,
+  ).toBe(replacementId);
+  await page
+    .getByRole("button", { name: "Start fresh investigation", exact: true })
+    .click();
+  await expect(
+    page.getByRole("button", { name: "Approve exact repair" }),
+  ).toBeVisible({ timeout: 90000 });
+  expect(
+    (await (await request.get(`${companyUrl}/api/health`)).json()).faultId,
+  ).toBe(replacementId);
+  await page.getByRole("button", { name: "Approve exact repair" }).click();
+  await expect(
+    page.getByRole("heading", {
+      name: "Recovery verified. Evidence retained.",
+    }),
+  ).toBeVisible({ timeout: 90000 });
+  expect(
+    (await (await request.get(`${companyUrl}/api/health`)).json()).fault,
+  ).toBe("none");
 });

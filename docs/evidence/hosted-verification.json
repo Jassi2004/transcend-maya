@@ -1,0 +1,56 @@
+{
+  "verifiedAt": "2026-10-20T07:07:38.934Z",
+  "deploymentCommit": "b46f057a9fd33064950a77d2305e4e593e202fe8",
+  "mayaUrl": "https://maya-yard-jassi.onrender.com",
+  "health": {
+    "status": "healthy",
+    "service": "maya",
+    "version": "0.1.0",
+    "provider": "deterministic",
+    "duoConnected": true,
+    "duoConfigured": true,
+    "buildCommit": "b46f057a9fd33064950a77d2305e4e593e202fe8"
+  },
+  "githubCI": {
+    "url": "https://github.com/Jassi2004/transcend-maya/actions/runs/39383260149",
+    "status": "success"
+  },
+  "gitlabCI": {
+    "url": "https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43459489/showcase/-/pipelines/2966301028",
+    "status": "success",
+    "sourceCommit": "3b0f46dd7a4229d8d89e310d3537445da93b7963"
+  },
+  "results": [
+    {
+      "company": "company-a",
+      "runId": "827e093a-dbed-496b-85c9-5de839a14892",
+      "sessionId": "9728352",
+      "status": "FINISHED",
+      "executionVerified": true,
+      "evidenceDigest": "60e51ccebb4df2520f3c709eaf785e43be4733479c849cc585f27752a6f589b9",
+      "webUrl": "https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43459489/showcase/-/automate/agent-sessions/9728352",
+      "recovery": "passed",
+      "crossCompanyHandoffHTTP": 404,
+      "liveBeforeFailed": true,
+      "liveAfterPassed": true
+    },
+    {
+      "company": "company-b",
+      "runId": "81295924-5083-4e1b-a5f1-9394d417f47e",
+      "sessionId": "9728353",
+      "status": "FINISHED",
+      "executionVerified": true,
+      "evidenceDigest": "aa35301cb9ed19518cef74dd2cf043141162c084a713ddc62a8efd06e6728a0a",
+      "webUrl": "https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43459489/showcase/-/automate/agent-sessions/9728353",
+      "recovery": "passed",
+      "crossCompanyHandoffHTTP": 404,
+      "liveBeforeFailed": true,
+      "liveAfterPassed": true
+    }
+  ],
+  "limits": [
+    "Synthetic demo services; automated test approvals are not named human approvals.",
+    "Read-only Duo review remains separate from deterministic recovery and lesson promotion.",
+    "Free Render SQLite is ephemeral. Initial cloud tests were interrupted by the post-CI redeploy; the final stable-deployment reruns passed."
+  ]
+}

@@ -68,11 +68,11 @@ Screenshots from the exercised browser journeys:
 
 The current local databases retain genuine test history. Counts reflect those records, not fabricated customer or impact metrics.
 
-## Remaining work and access blockers
+## Hosted verification and deployment limits
 
 ### Permanent Render hosting
 
-The `maya-transcend-demo` blueprint contains all three services in Jaskirat Singh's workspace. Their public health endpoints are verified. The authenticated cloud cross-stack browser journey passed on 20 October: both faults were reproduced and recovered, stored support-ticket priority was corrected, and customer booking/ticket journeys passed. A cold-start health timeout was warmed and retried before fault injection. The cloud stale-approval regression requires the cloud Company A connector key and remains separate from this result. New builds expose their Render commit through `/api/health` for deployment identity checks.
+The `maya-transcend-demo` blueprint contains all three services in Jaskirat Singh's workspace. Their public health endpoints are verified. The authenticated cloud cross-stack browser journey passed on 20 October: both faults were reproduced and recovered, stored support-ticket priority was corrected, and customer booking/ticket journeys passed. A cold-start health timeout was warmed and retried before fault injection. The cloud stale-approval regression requires the cloud Company A connector key and remains separate from this result. The deployed application was verified as commit `b46f057a9fd33064950a77d2305e4e593e202fe8` through `/api/health`. Its GitHub verify/connected/delivery jobs and the GitLab source-mirror pipeline passed.
 
 Free Render services sleep and have ephemeral filesystems. Their SQLite records may reset on restart or deployment. The blueprint is suitable for synthetic demonstrations. Persistent cloud storage requires a disk/database decision; the current local Docker volumes are durable.
 
@@ -84,8 +84,12 @@ The first runner attempt failed before agent startup because `node:24-bookworm-s
 
 MAYA now exposes a per-run **Review with GitLab Duo** action, explicit evidence sharing, immutable evidence digest, real session link, retained reports and honest in-progress/failure states. Five bridge tests cover auth/scope/consent, duplicate requests, ambiguous network failure, exact session identity and result/approval separation. A browser check covers sharing, state transitions, safe text rendering and mobile layout. The opt-in real app-to-Duo browser journey passed in 1.9 minutes: a local connected Company A recovery was reviewed through the actual UI, [session 9727804](https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43459489/showcase/-/automate/agent-sessions/9727804) reached FINISHED and its report appeared in MAYA. [Frozen evidence and result](evidence/app-duo-review.json) are retained. This proves the local integration; it does not configure a cloud credential. Model conclusions remain untrusted and do not authorize actions.
 
-Hosted recovery is already verified. Hosted Duo still needs a dedicated GitLab API credential in Render's server environment; the local CLI credential stays in Keychain. See README for the three non-secret project configuration values and token variable. Free Render redeployments may reset SQLite, including review history.
+**Hosted recovery and Duo are verified for both stacks.** The final cloud browser journeys passed for [Company A session 9728352](https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43459489/showcase/-/automate/agent-sessions/9728352) and [Company B session 9728353](https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43459489/showcase/-/automate/agent-sessions/9728353). Each recovered a real demo fault, launched a new review from the hosted UI and displayed the final report. [Release verification](evidence/hosted-verification.json) records the exact deployment, sessions and checks; [A](evidence/cloud-company-a-duo-review.json) and [B](evidence/cloud-company-b-duo-review.json) retain their frozen evidence and results. SHA-256 recomputation matched both frozen snapshots. Cross-company handoff requests returned HTTP 404, and both services passed live health/behavior probes afterward.
+
+The first cloud attempts were interrupted when Render's post-CI redeploy reset the ephemeral demo database; their external GitLab reviews completed, but they are not counted as passing browser journeys. The two final journeys ran after deployment settled. The dedicated API token remains only in Render; the local CLI credential stays in Keychain. Documentation/evidence-only updates use Render's documented `[skip render]` phrase to retain the current demo records. Free Render redeployments may still reset SQLite, including review history.
 
 Provisioned project: https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43459489/showcase
 
 V1 has no general CI repair, autonomous production monitoring, vendor marketplace or arbitrary code repair. The demonstrated value is company-scoped reviewed memory, evidence-backed recovery across two actual stacks, and independent real Duo reviews. Submission writing, demo recording and eligibility review remain separate tasks.
+
+![Hosted MAYA with a completed Duo review](screenshots/maya-duo-cloud-company-a.png)

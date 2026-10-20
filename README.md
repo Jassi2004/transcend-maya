@@ -43,7 +43,7 @@ Repair authorization is saved before the network request. Each live fault has an
 | Fixture contracts and live post-repair verification | Working |
 | Scoped memory, review, versioning, expiry, stale-runtime rejection | Working |
 | GitHub Actions CI, cross-stack browser checks, and commit-tagged GHCR delivery | Working; see Actions and delivery evidence |
-| GitLab Duo supervisor/specialist flow | Enabled; actual reviews completed for both companies. Optional per-run API/UI integration |
+| GitLab Duo supervisor/specialist flow | Enabled; actual reviews completed for both companies. Per-run API/UI integration verified locally and on Render for both companies |
 | GitHub/GitLab merge requests, arbitrary CI repair, vendor monitoring | Not implemented |
 | Continuous autonomous monitoring or production healing | Not implemented |
 
@@ -71,7 +71,7 @@ If the database was first started without Company A's connector, its seeded work
 
 `render.yaml` defines three free web services and generates connector/access secrets through Render. No payment is required by this blueprint. Free services sleep when idle; warm them before a demo. Their filesystem is ephemeral: **SQLite may reset on restarts/redeploys**. For durable shared hosting, add persistent disks or a managed database after choosing a budget. The local Docker deployment already uses persistent volumes.
 
-Hosted demos: [MAYA](https://maya-yard-jassi.onrender.com), [Company A](https://maya-company-a-jassi.onrender.com), [Company B](https://maya-company-b-jassi.onrender.com). Their health endpoints and the authenticated cross-stack recovery browser journey passed on 20 October. Hosted Duo requires a separately configured server credential.
+Hosted demos: [MAYA](https://maya-yard-jassi.onrender.com), [Company A](https://maya-company-a-jassi.onrender.com), [Company B](https://maya-company-b-jassi.onrender.com). Their health endpoints and the authenticated cross-stack recovery browser journey passed on 20 October. Hosted Duo is configured with a separate server credential, and both companies completed the actual cloud recovery-to-Duo browser journey. See [hosted verification](docs/evidence/hosted-verification.json).
 
 The operator key is `MAYA_ACCESS_TOKEN` in MAYA's Render Environment settings. A free deployment is suitable for synthetic demo data, not customer production use. Current deployment links and verification evidence belong in `docs/DELIVERY.md`.
 
@@ -89,7 +89,7 @@ export MAYA_DUO_AUTH=glab
 npm start
 ```
 
-This local mode requires an authenticated `glab` CLI and a loopback host. The CLI retains its credential; MAYA does not extract it. For hosting, omit `MAYA_DUO_AUTH` and configure `MAYA_GITLAB_TOKEN` in server environment settings using a dedicated, short-lived API token whose owner can run the enabled flow in that project. The token is excluded from prompts, exports and UI. Never commit it. Use only a reviewed, read-only enabled flow for this integration.
+Choose a free `PORT` if the Docker demo already uses 4200. This local mode requires an authenticated `glab` CLI and a loopback host. The CLI retains its credential; MAYA does not extract it. For hosting, omit `MAYA_DUO_AUTH` and configure `MAYA_GITLAB_TOKEN` in server environment settings using a dedicated, short-lived API token whose owner can run the enabled flow in that project. The token is excluded from prompts, exports and UI. Never commit it. Use only a reviewed, read-only enabled flow for this integration.
 
 Open a completed investigation, check **Share this run’s evidence with GitLab Duo**, then **Review with GitLab Duo**. MAYA freezes and hashes the evidence, calls GitLab's workflow REST API with the enabled consumer and `start_workflow: true`, and polls the exact session through GraphQL. A created session alone is not execution proof: the UI marks execution verified only after `FINISHED`, an agent report and no reported execution errors. Polling never launches another session. Ambiguous submissions remain recorded and require inspecting GitLab rather than blindly retrying. The repair remains a separate, exact-artifact approval.
 

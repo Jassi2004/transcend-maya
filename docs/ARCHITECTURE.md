@@ -44,7 +44,7 @@ MAYA's npm tarball contains the built server/client, CLI, docs and Duo YAML. The
 
 ## GitLab Duo review bridge
 
-The read-only flow uses `AgentComponent.subagents` in the same YAML. MAYA Incident Review v1.0.0 is registered and enabled in Showcase. Completed sessions for both company handoffs prove real supervisor delegation and final reports; source definitions alone do not. [Execution records](evidence/duo-reviews.json) distinguish the reviewed historical examples from current service checks.
+The read-only flow uses `AgentComponent.subagents` in the same YAML. MAYA Incident Review v1.0.0 is registered and enabled in Showcase. Completed sessions for both company handoffs prove real supervisor delegation and final reports; source definitions alone do not. The app bridge also passed both hosted cloud browser journeys, with frozen snapshot hashes and company-boundary checks in [hosted verification](evidence/hosted-verification.json). [Execution records](evidence/duo-reviews.json) distinguish the reviewed historical examples from current service checks.
 
 An operator explicitly shares one run's frozen evidence. A separate SQLite record stores its SHA-256, company/run scope, destination project, session ID and reports. The bridge journals intent before the REST mutation, requires a runner workload, and never automatically repeats an ambiguous submission. Duplicate starts return the same record. GraphQL polling verifies the exact session ID. `FINISHED` with an agent report and no checkpoint errors establishes execution; it does not establish that the model's conclusions are correct.
 

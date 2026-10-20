@@ -6,9 +6,11 @@ MAYA is the separate automation product. [Field Supply](https://maya-demo-store-
 
 The default dashboard shows the delivery journey, clickable workforce diagram, source diffs, failed-job traces, approvals, CI results, deployed revision and company memory. The older deterministic fault-reset experiment remains available at `/?lab=1`; it is historical and is not the CI/CD repair engine.
 
-**Verified demo:** two real Duo-authored pricing repairs reached GitLab Pages staging through actual MRs and CI. The second investigation retrieved the first reviewed lesson. [Inspect the delivery proof](docs/DELIVERY.md) or follow the [three-minute walkthrough](docs/DEMO.md).
+**Verified demo:** two Duo-authored pricing repairs reached GitLab Pages staging, and a separate Python/FastAPI company recovered through GitHub Actions, a real repair PR and Render staging. The second GitLab investigation retrieved the first reviewed lesson. [Inspect the delivery proof](docs/DELIVERY.md) or follow the [three-minute walkthrough](docs/DEMO.md).
 
 ![Hosted MAYA workforce and verified staging delivery](docs/screenshots/delivery-v2-workforce.jpg)
+
+![Signal Desk: completed GitHub-to-Render staging recovery](docs/screenshots/github-company-b-complete.png)
 
 ## Run locally
 
@@ -21,6 +23,9 @@ npm start
 ```
 
 Open http://127.0.0.1:4200. Paste a public GitLab.com or GitHub repository URL to discover source, stack, workflows, environment **names** and deployment policy. A URL does not grant access to private third-party infrastructure. Private source and repair publication need a scoped repository token.
+
+See [a company running on MAYA](docs/ONBOARDING.md) for onboarding boundaries,
+the staging workflow and where to inspect each decision in the console.
 
 For real Duo reasoning, configure a project with an enabled instance of [the delivery flow](.gitlab/duo/flows/delivery-workforce.yml):
 
@@ -87,6 +92,6 @@ This is a **single operator demo**, not an enterprise multiuser system. Checkpoi
 
 During deployment the incoming process claims the current checkpoint with a compare-and-swap before starting observers. A racing final save is reread before handover; the outgoing process cannot overwrite the new owner's checkpoint. Failed ownership confirmation stops startup. Read-only checkpoint inspection does not claim ownership. This accommodates a brief deployment overlap; it is not support for multiple active controllers.
 
-GitLab is the first complete delivery integration. GitHub discovery/PR/check support and several external signal adapters exist, but universal company onboarding and arbitrary production healing are not established. External services require their own access. Source discovery is bounded; large monorepos and new-file proposals are not supported. Repository commands execute in the company’s CI, never on MAYA’s host.
+Complete staging journeys are demonstrated for GitLab CI/Pages and GitHub Actions/Render. The current observer handles failures on the current default branch; unmerged feature PRs are not automatically repaired. Universal company onboarding and arbitrary production healing are not established. External services require their own access. Source discovery is bounded; large monorepos and new-file proposals are not supported. Repository commands execute in the company’s CI, never on MAYA’s host.
 
 MIT licensed. Built for [Life After Code](https://gitlab-transcend.devpost.com/).

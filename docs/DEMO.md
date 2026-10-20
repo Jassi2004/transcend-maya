@@ -26,10 +26,11 @@ observation, evidence, permissions and verified delivery.
    operator review and retired previous version. In a later failure, show the actual
    matched lesson ID and fresh source/log evidence. This is advisory retrieval,
    not model retraining or permission to reuse an old patch.
-6. **The product boundary (20 seconds).** Switch to Signal Desk, the separately
-   discovered Python/FastAPI GitHub company. Its source/jobs are separate. The complete
-   repair/deploy proof is currently GitLab; this second workspace proves discovery and
-   scope, not arbitrary cross-vendor healing. Show the working Field Supply storefront.
+6. **A separate stack (20 seconds).** Switch to Signal Desk, the Python/FastAPI
+   company using GitHub Actions and Render. Show its real repair PR #1, green CI,
+   verified full live SHA and reviewed lesson. Its source, credentials and memory
+   are separate from Field Supply. These are two configured provider paths;
+   other tools still need integrations and access.
 
 ## Narration
 
@@ -41,11 +42,18 @@ Every decision has inspectable evidence.”
 
 ## Honest demo labels
 
-The source defects are deliberately introduced stimuli. GitLab CI failures, Duo
-sessions, source edits, MRs and deployments are real. Automated tests with fake
+The source defects are deliberately introduced stimuli. GitLab/GitHub CI failures, Duo
+sessions, source edits, MRs/PRs and deployments are real. Automated tests with fake
 provider transports validate controller behaviour separately. Production deployment,
 universal company integration and model self-training are not demonstrated.
 The older fault-reset lab is explicitly at `/?lab=1`.
+
+Company B's history retains three failed or incomplete investigations while MAYA's
+prompt sizing, evidence selection and a credential-filter false positive were fixed.
+Its eventual application repair was authored by Duo. Checkpoint recovery was an
+administrative intervention. Do not describe this rollout as an uninterrupted
+autonomous run. Automatic repair currently begins with a failure at the current
+default staging branch, not an unmerged feature PR.
 
 Free Render may sleep. Wake the service before recording. Export workspace evidence
 before a demonstration. Encrypted checkpoints recover this demo's operations records;

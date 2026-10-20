@@ -1,0 +1,56 @@
+{
+  "schema": "maya-two-companies-final-verification-v2",
+  "recordedAt": "2026-10-20T16:07:32.953Z",
+  "deployedApplication": "acddec214e3e2d5fe8786da4c954cf866d7ba333",
+  "ci": {
+    "github": "https://github.com/Jassi2004/transcend-maya/actions/runs/39453317362",
+    "gitlab": "https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43459489/showcase/-/pipelines/2968441994",
+    "status": "success",
+    "backendTests": 49,
+    "browserTests": 7,
+    "connectedServiceChecks": true
+  },
+  "companies": [
+    {
+      "id": "company-a",
+      "name": "gitlab-ai-hackathon/transcend-october-2026/43459489/maya-demo-store",
+      "headSha": "89d0e15d178c27427a8c3e81417844086167c144",
+      "resolvedDeliveries": 2,
+      "activeLessons": 2,
+      "tasks": 6,
+      "policyPreserved": true
+    },
+    {
+      "id": "78136dac-76b1-4e34-a09a-245ff6fd36e3",
+      "name": "Jassi2004/transcend-company-b",
+      "headSha": "6112046b37891a718c17261261fc5ce9d8d714ee",
+      "resolvedDeliveries": 1,
+      "activeLessons": 1,
+      "tasks": 5,
+      "policyPreserved": true
+    }
+  ],
+  "authenticatedExport": {
+    "workspaces": 2,
+    "evidenceHashesVerified": 121,
+    "credentialsExcluded": true
+  },
+  "isolation": {
+    "crossWorkspaceEvidenceStatus": 404,
+    "unauthenticatedSnapshotStatus": 401
+  },
+  "checkpointRestore": {
+    "freshDatabase": true,
+    "readOnly": true,
+    "evidenceHashesVerified": 121,
+    "policiesAndLessonStatesPreserved": true
+  },
+  "checkpointStatus": {
+    "mode": "encrypted-checkpoint",
+    "lastSavedAt": "2026-10-20T16:06:26.348Z"
+  },
+  "limits": [
+    "Supervised staging on the current default branch only; unmerged feature PR repair and production rollout are not automated.",
+    "Free Render may sleep. Checkpoints are periodic single-writer demo persistence, not a production database."
+  ]
+}

@@ -78,3 +78,26 @@ Actions observation. Monitoring is enabled and confirmed in a fresh checkpoint
 restore. Deployment handover claims checkpoint ownership before observers start;
 42 backend tests, seven UI tests, connected-service tests and both source-provider
 CI pipelines passed. [Activation and persistence proof](evidence/github-activation-v2.json).
+
+## Both-company completion
+
+- [x] Signal Desk's actual GitHub Actions source failure investigated by Duo.
+- [x] Real source-only PR #1 published and merged under supervised staging.
+- [x] Passing release CI, successful GitHub staging deployment and exact Render SHA.
+- [x] Independent live verification of all four severity classifications.
+- [x] Corrector lesson independently reviewed and activated.
+- [x] Signed GitHub webhook connected and its delivery acknowledged.
+- [x] Prompt bounds, duplicate-log budgeting and Python type-annotation filtering fixed.
+- [x] Lost checkpoint acknowledgements reconciled without another mutation.
+
+The final code revision is `acddec214e3e2d5fe8786da4c954cf866d7ba333`.
+The suite now has 49 backend tests, seven browser tests and connected-service
+checks. [The GitHub delivery proof](evidence/github-company-b-delivery-v2.json)
+retains failed investigations and administrative interventions.
+[The final two-company verification](evidence/two-companies-final-verification-v2.json)
+records evidence hashes, reviewed lessons, workspace isolation and a fresh
+read-only encrypted-checkpoint restore.
+
+Automatic repair still starts with a failure at the current default staging
+branch. Unmerged feature PR repair, production rollout, universal vendor
+integrations and enterprise multiuser operation are outside this demo.

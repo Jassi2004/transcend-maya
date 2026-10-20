@@ -101,10 +101,106 @@ the restart. Its enabled monitoring was written to the encrypted checkpoint and
 confirmed through a fresh read-only restore, with all 74 evidence hashes intact.
 The two resolved GitLab deliveries, reviewed lessons and six original workforce
 tasks remain. [Activation and persistence proof](evidence/github-activation-v2.json).
-GitHub PR publication and merge have not yet been exercised; Company B remains
-assisted, with Duo sharing and automatic investigation disabled.
+At that earlier checkpoint GitHub publication and merge had not yet been
+exercised; Company B was assisted, with Duo sharing and automatic investigation
+disabled. The completed rollout below supersedes that state.
 
 ![Company B connected, monitoring enabled and encrypted checkpoint saved](screenshots/github-company-b-connected.jpg)
+
+## GitHub rollout safeguards
+
+Signal Desk's staging foundation is live: a repository `.maya.yml` explicitly
+declares `main` as staging, the Render health endpoint returns its actual full
+`RENDER_GIT_COMMIT`, and a workflow records a GitHub deployment only after the live
+revision and critical-priority routing pass. Baseline workflow runs
+[39435246874](https://github.com/Jassi2004/transcend-company-b/actions/runs/39435246874)
+and [39435437331](https://github.com/Jassi2004/transcend-company-b/actions/runs/39435437331)
+verified revision `06293e8ed73f90757a6e1c201c8c5f6e01942940`.
+
+The deliberate regression at `c5a8877cb65ed2f828d3e9c99fb4e3a5cde52e5d`
+produced three actual pytest failures in
+[run 39436529670](https://github.com/Jassi2004/transcend-company-b/actions/runs/39436529670).
+MAYA's GitHub Actions reader now follows the provider's signed log download only
+to trusted public storage hosts, without forwarding the repository credential.
+The original failure log is preserved with its content hash.
+
+Testing exposed controller defects that were corrected rather than hidden.
+The first frozen context was 67,773 characters before instructions, above GitLab's
+65,536-character goal limit. It created no matching provider session. MAYA retained
+the uncertain attempt; a provider digest search and recorded operator recovery
+decision released it after inspection. The next session,
+[9755157](https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43459489/showcase/-/automate/agent-sessions/9755157),
+correctly declined to guess a repair because duplicate historical log captures
+had displaced `app.py` from the source budget. No repair was published from that
+incomplete investigation. Latest-log selection now preserves history while
+including the app, original tests and real failure log within the launch limit.
+
+Session [9756179](https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43459489/showcase/-/automate/agent-sessions/9756179)
+then identified the inverted condition, but its proposed file was blocked because
+the credential filter had mistaken a FastAPI `authorization: str = Header(...)`
+annotation for a secret. The controller refused to publish an edit based on
+redacted source. A narrow correction preserves builtin FastAPI header type
+annotations while retaining filtering of actual header values and assignments.
+The preflight independently verified that the captured application's Git blob
+hash now exactly matches the original provider source. No operator-authored
+application repair was used to bypass any of these stops.
+
+Supervised mode also protects Python dependency and deployment configuration,
+including `pyproject.toml`, requirements files, Dockerfiles and Render configuration.
+Source-only application fixes remain eligible for the explicit staging policy.
+
+## Company B: complete GitHub-to-Render recovery
+
+Signal Desk now has monitoring, evidence sharing, automatic Duo investigation
+and supervised staging enabled. Its signed GitHub webhook delivered an actual
+HTTP 202 acknowledgement. Original pipeline failure
+[39436529670](https://github.com/Jassi2004/transcend-company-b/actions/runs/39436529670)
+was investigated by real Duo session
+[9761214](https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43459489/showcase/-/automate/agent-sessions/9761214).
+
+MAYA automatically published [PR #1](https://github.com/Jassi2004/transcend-company-b/pull/1).
+The actual provider diff changes only one comparison operator in `app.py`; tests,
+CI and policy were untouched. [Repair CI](https://github.com/Jassi2004/transcend-company-b/actions/runs/39451805261)
+passed, and the supervised policy merged revision
+`6112046b37891a718c17261261fc5ce9d8d714ee`.
+[Release CI](https://github.com/Jassi2004/transcend-company-b/actions/runs/39451996552)
+and [live staging verification](https://github.com/Jassi2004/transcend-company-b/actions/runs/39452117428)
+passed. Render returned that exact full SHA, HTTP 200 and healthy state.
+Independent probes preserved all four severity classifications; all 13 Python
+tests passed again on the pulled, merged source.
+
+Corrector session
+[9761778](https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43459489/showcase/-/automate/agent-sessions/9761778)
+proposed the scoped lesson `0265a27e-7855-46d6-a0a9-e3671d4b89a7`.
+Its independent review checked the actual provider diff, passing merge-run logs
+and all four live classifications before activation. The candidate's limits and
+the independent review remain visible. It is advisory retrieval, not model training.
+
+The rollout also exposed a lost checkpoint acknowledgement: GitLab had committed
+the encrypted snapshot, but the running process retained the earlier file CAS
+identity. Periodic saves now reconcile only their own authenticated checkpoint,
+without another mutation or taking a different writer's ownership. Regression
+coverage includes lost acknowledgements, denied saves and fenced outgoing writers.
+To preserve the already completed cloud journey during this upgrade, observation
+was paused, fresh live exports and audit records were combined with the existing
+encrypted credentials/deduplication state, every evidence hash was verified, and
+one compare-and-swap checkpoint handover retained provider history. This was an
+explicit administrative recovery, not an uninterrupted autonomous rollout.
+
+[Company B delivery proof](evidence/github-company-b-delivery-v2.json) and
+[two-company persistence/isolation verification](evidence/two-companies-final-verification-v2.json)
+record the final state separately from the historical proofs above.
+
+![Company B: completed delivery and reviewed lesson](screenshots/github-company-b-complete.png)
+
+The clickable verifier opens the [exact staging revision receipt](screenshots/github-company-b-staging-evidence.png).
+Final application revision `acddec214e3e2d5fe8786da4c954cf866d7ba333`
+passed 49 backend tests, seven browser tests and connected-service checks in
+[GitHub CI](https://github.com/Jassi2004/transcend-maya/actions/runs/39453317362)
+and [GitLab CI](https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43459489/showcase/-/pipelines/2968441994).
+The final read-only checkpoint restore verified all 121 evidence hashes,
+both companies' policies, completed deliveries and active lessons. Unauthenticated
+access returned 401 and cross-workspace evidence access returned 404.
 
 ## Reproduce
 

@@ -1,0 +1,270 @@
+{
+  "schema": "maya-real-github-delivery-proof-v2",
+  "recordedAt": "2026-10-20T16:06:22.370Z",
+  "application": "acddec214e3e2d5fe8786da4c954cf866d7ba333",
+  "company": {
+    "name": "Signal Desk",
+    "id": "78136dac-76b1-4e34-a09a-245ff6fd36e3",
+    "repository": "https://github.com/Jassi2004/transcend-company-b",
+    "stack": [
+      "Python",
+      "HTML",
+      "Dockerfile",
+      "FastAPI"
+    ],
+    "live": "https://maya-company-b-jassi.onrender.com"
+  },
+  "policy": {
+    "monitoring": true,
+    "shareWithDuo": true,
+    "autoInvestigate": true,
+    "automationMode": "supervised",
+    "stagingPolicy": {
+      "branch": "main",
+      "environment": "staging",
+      "maxAttempts": 3,
+      "sourcePath": ".maya.yml"
+    }
+  },
+  "stimulus": {
+    "commit": "c5a8877cb65ed2f828d3e9c99fb4e3a5cde52e5d",
+    "workflow": "https://github.com/Jassi2004/transcend-company-b/actions/runs/39436529670",
+    "description": "Deliberate Python source regression inverted the fault condition, misclassifying healthy critical-priority requests. Existing CI tests failed."
+  },
+  "evidence": {
+    "originalLogs": [
+      {
+        "id": "04721af7-f2a5-4d7f-851d-0f5e9921bdcc",
+        "name": "verify.log",
+        "digest": "e1a6ae91693c45036e4eff4db0922a50719f42b2f183ecc49e6373a19ddfb25b",
+        "commitSha": "c5a8877cb65ed2f828d3e9c99fb4e3a5cde52e5d",
+        "containsActualAssertion": true
+      },
+      {
+        "id": "8fc666a1-848a-4d40-b604-dbf71226dd1a",
+        "name": "verify.log",
+        "digest": "e1a6ae91693c45036e4eff4db0922a50719f42b2f183ecc49e6373a19ddfb25b",
+        "commitSha": "c5a8877cb65ed2f828d3e9c99fb4e3a5cde52e5d",
+        "containsActualAssertion": true
+      },
+      {
+        "id": "dc83a008-2de3-48bb-9d45-86b86f18f3e4",
+        "name": "verify.log",
+        "digest": "e1a6ae91693c45036e4eff4db0922a50719f42b2f183ecc49e6373a19ddfb25b",
+        "commitSha": "c5a8877cb65ed2f828d3e9c99fb4e3a5cde52e5d",
+        "containsActualAssertion": true
+      },
+      {
+        "id": "f4231aeb-3cc4-4058-9bda-d20b13b5b307",
+        "name": "verify.log",
+        "digest": "f9eff39241553cb9553b880f831b299be1ab8c3e128a0600365b1e1c0b22b0b9",
+        "commitSha": "c5a8877cb65ed2f828d3e9c99fb4e3a5cde52e5d",
+        "containsActualAssertion": true
+      }
+    ],
+    "files": 47
+  },
+  "workforce": {
+    "id": "d1f9e396-dccf-4cd8-9c70-9613625fde39",
+    "sessionId": "9761214",
+    "url": "https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43459489/showcase/-/automate/agent-sessions/9761214",
+    "state": "complete",
+    "evidenceDigest": "ece53a2bd3f71411e3de59e7cc3e802748fdf20cbd3d26d9ec5dce78b787808f"
+  },
+  "proposal": {
+    "digest": "42396951a1483df8eef99b1027cb80ec8f0b027e4de8fcf780225bc12c63e6f3",
+    "title": "Fix inverted critical-priority classification condition",
+    "confidence": "high",
+    "rootCause": "In app.py, classify() has an inverted fault comparison. It returns \"low\" for severity \"critical\" whenever current_fault != \"priority-inversion\", which includes the healthy state \"none\". It should downgrade only when the fault is \"priority-inversion\". All three failed tests follow from this one condition. Healthy /api/classify and POST /api/tickets returned low for critical, and with the fault active classify returned critical instead of low. Confidence is high from static reading of the supplied source and assertions. The fix has not been executed. Pytest stops at the first failed assert in each failing test, so later assertions in those tests have not run. A separate defect could appear there.",
+    "changedPaths": [
+      "app.py"
+    ]
+  },
+  "publication": {
+    "branch": "maya/repair-239cccdb-23a",
+    "state": "created",
+    "commitSha": "4b7688811bf8b340766d6841c8698bb7e04cbef3",
+    "prNumber": 1,
+    "url": "https://github.com/Jassi2004/transcend-company-b/pull/1"
+  },
+  "providerDiff": [
+    {
+      "path": "app.py",
+      "status": "modified",
+      "additions": 1,
+      "deletions": 1,
+      "patch": "@@ -118,7 +118,7 @@ def fault(db):\n \n     def classify(severity, current_fault):\n         return (\n-            \"low\" if severity == \"critical\" and current_fault != \"priority-inversion\" else severity\n+            \"low\" if severity == \"critical\" and current_fault == \"priority-inversion\" else severity\n         )\n \n     def ticket_json(row):"
+    }
+  ],
+  "checks": {
+    "sha": "4b7688811bf8b340766d6841c8698bb7e04cbef3",
+    "state": "passing",
+    "items": [
+      {
+        "name": "deliver",
+        "status": "completed",
+        "conclusion": "skipped",
+        "url": "https://github.com/Jassi2004/transcend-company-b/actions/runs/39451805261/job/118728389337"
+      },
+      {
+        "name": "verify",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/Jassi2004/transcend-company-b/actions/runs/39451805261/job/118728273828"
+      }
+    ],
+    "at": "2026-10-20T15:51:57.273Z"
+  },
+  "merge": {
+    "state": "merged",
+    "sha": "6112046b37891a718c17261261fc5ce9d8d714ee",
+    "at": "2026-10-20T15:49:43Z",
+    "reason": "Supervised staging policy: exact repair commit passed CI; merge into the explicitly declared staging branch."
+  },
+  "deployment": {
+    "state": "success",
+    "url": "https://maya-company-b-jassi.onrender.com",
+    "at": "2026-10-20T15:51:44Z"
+  },
+  "liveRevision": {
+    "url": "https://maya-company-b-jassi.onrender.com/api/health",
+    "expectedSha": "6112046b37891a718c17261261fc5ce9d8d714ee",
+    "actualSha": "6112046b37891a718c17261261fc5ce9d8d714ee",
+    "httpStatus": 200,
+    "passed": true,
+    "at": "2026-10-20T15:51:58.427Z"
+  },
+  "attempts": [
+    {
+      "taskId": "d1f9e396-dccf-4cd8-9c70-9613625fde39",
+      "baseSha": "c5a8877cb65ed2f828d3e9c99fb4e3a5cde52e5d",
+      "digest": "42396951a1483df8eef99b1027cb80ec8f0b027e4de8fcf780225bc12c63e6f3",
+      "commitSha": "4b7688811bf8b340766d6841c8698bb7e04cbef3",
+      "at": "2026-10-20T15:48:27.311Z"
+    }
+  ],
+  "learning": {
+    "reflection": {
+      "id": "8738dff8-bc08-4bc8-9e35-c8d75e6408dd",
+      "sessionId": "9761778",
+      "state": "complete",
+      "url": "https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43459489/showcase/-/automate/agent-sessions/9761778"
+    },
+    "lessons": [
+      {
+        "id": "0265a27e-7855-46d6-a0a9-e3671d4b89a7",
+        "title": "Inverted fault comparison in classify() downgraded healthy critical tickets to low priority",
+        "status": "active",
+        "reviews": [
+          {
+            "action": "promote",
+            "reason": "Independently verified provider PR #1 changed only the classify comparison in app.py; tests, CI and policy were unchanged. Passing merge CI 39451996552 reports all 13 tests passed. Render health returned exact merged SHA 6112046b37891a718c17261261fc5ce9d8d714ee, and independent live probes preserved low, normal, high and critical severity. The candidate accurately distinguishes its supplied SHA probe from behavior verification and proposes advisory source/test checks. The broken commit never deployed in this demonstration, so no affected staging data or required migration has been demonstrated. Retain the stated uncertainty rather than claiming model training or universal self-healing.",
+            "at": "2026-10-20T15:58:13.132Z"
+          }
+        ],
+        "evidenceIds": [
+          "4757cfdf-46ce-4587-b7ca-0700ddadef27",
+          "a45ede6e-98c4-4d23-8a1f-cb7c280ecec7",
+          "09bd394d-c781-4243-9ed6-f56e7d930e49",
+          "d61fd60d-446a-4524-95e8-b61df9f0b487",
+          "5f2cf4ff-ba9b-4431-8e5b-6813cc469bef",
+          "a3ce88cf-ecf8-4cb9-b979-fe34957466e7",
+          "ebb7ec3e-7edf-4df3-a36c-8a0fffbf6245",
+          "04721af7-f2a5-4d7f-851d-0f5e9921bdcc",
+          "1f44e066-aba9-4e13-bff1-a73b22276019",
+          "871219a9-8dcf-4aac-a15d-a9c73a9e45e9"
+        ]
+      }
+    ],
+    "claim": "An outcome-based lesson was independently reviewed and activated; this is scoped advisory retrieval, not model training."
+  },
+  "independentBehaviorCheck": {
+    "at": "2026-10-20T16:06:22.372Z",
+    "health": {
+      "status": "healthy",
+      "service": "company-b",
+      "version": "1.0.0",
+      "buildCommit": "6112046b37891a718c17261261fc5ce9d8d714ee",
+      "database": "connected",
+      "fault": "none",
+      "faultId": "",
+      "timestamp": "2026-10-20T16:06:21.994862+00:00"
+    },
+    "routing": [
+      {
+        "severity": "low",
+        "priority": "low"
+      },
+      {
+        "severity": "normal",
+        "priority": "normal"
+      },
+      {
+        "severity": "high",
+        "priority": "high"
+      },
+      {
+        "severity": "critical",
+        "priority": "critical"
+      }
+    ],
+    "passed": true
+  },
+  "storage": {
+    "mode": "encrypted-checkpoint",
+    "lastSavedAt": "2026-10-20T16:05:23.931Z"
+  },
+  "operatorInterventions": [
+    {
+      "kind": "Duo launch recovery",
+      "originalTask": "54ec8942-18a8-435f-bef1-8e5dd8eecec9",
+      "originalContextCharacters": 67773,
+      "providerGoalLimit": 65536,
+      "diagnosis": "The original frozen context alone exceeded the provider limit; no matching provider session existed. Payload sizing was fixed, a provider search repeated and an explicit recovery decision recorded before a separate new investigation.",
+      "sourceRepair": "No operator-authored repair was applied; Duo authored the actual application correction."
+    },
+    {
+      "kind": "Evidence packing correction",
+      "session": "9755157",
+      "outcome": "Duo returned files:[] and requested missing app.py; it correctly declined to guess. Historical duplicate logs had exhausted the source budget. Latest-log selection was fixed and a read-only controller preflight verified source and tests fit before a fresh investigation."
+    },
+    {
+      "kind": "Credential filter false positive",
+      "session": "9756179",
+      "outcome": "Duo identified the source defect, but MAYA rejected the replacement because the original source contained a redacted FastAPI authorization type annotation. A narrow filtering fix preserved the builtin annotation; a separate investigation received source independently verified against its original Git blob. No proposal from this rejected attempt was published."
+    },
+    {
+      "kind": "Checkpoint recovery",
+      "metadata": {
+        "schema": "maya-administrative-checkpoint-recovery",
+        "at": "2026-10-20T15:58:20.363Z",
+        "reason": "The provider committed the previous writer snapshot but its HTTP acknowledgement was lost. The running pre-fix writer retained its prior CAS identity and could not save later state.",
+        "originalCommit": "f94e25e1e1229aa7b43170395eddac28a0399429",
+        "recoveryCommit": "50e89d6e404be8b497ff27ea2e662129db4996d3",
+        "currentLiveExports": true,
+        "historicalSnapshotUsed": false,
+        "providerHistoryPreserved": true,
+        "observersTemporarilyPaused": true,
+        "noActiveWorkforceSessions": true,
+        "preservedCredentials": 1,
+        "preservedDedup": 9,
+        "auditRows": 123,
+        "records": 141,
+        "evidenceHashesVerified": 120,
+        "preflightReadOnlyRestore": true,
+        "independentReadbackVerified": true
+      },
+      "outcome": "A lost provider acknowledgement left the old process with a stale CAS identity. Fresh live exports and audit records were preserved in an encrypted compare-and-swap handover, retaining existing encrypted credentials and deduplication data. The fixed writer was deployed and observation re-enabled; final read-only restoration verifies the completed records."
+    },
+    {
+      "kind": "Memory review",
+      "decision": "The outcome-based candidate was independently reviewed before activation."
+    }
+  ],
+  "limits": [
+    "The regression is a deliberate demo stimulus. GitHub CI, Duo, repair PR, merge and Render staging deployment are real.",
+    "The current observer automatically handles failures on the current default staging branch; unmerged feature PRs are not automatically repaired.",
+    "Production is not configured. External integrations require separate access.",
+    "Free Render uses periodic encrypted single-writer checkpoints rather than a production database."
+  ]
+}

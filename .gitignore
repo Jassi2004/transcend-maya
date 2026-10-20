@@ -3,6 +3,8 @@ dist/
 data/
 .env
 **/.env
+.env.*
+!.env.example
 *.tgz
 test-results/
 playwright-report/

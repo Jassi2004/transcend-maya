@@ -2,7 +2,14 @@ import { DatabaseSync } from "node:sqlite";
 import { mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 import { randomUUID } from "node:crypto";
-import type { Audit, Company, Incident, Lesson, Run } from "../shared/types.js";
+import type {
+  Audit,
+  Company,
+  DuoReview,
+  Incident,
+  Lesson,
+  Run,
+} from "../shared/types.js";
 export class Store {
   readonly db: DatabaseSync;
   constructor(path: string) {
@@ -20,6 +27,7 @@ export class Store {
    CREATE INDEX IF NOT EXISTS company_incidents ON incidents(companyId);
    CREATE INDEX IF NOT EXISTS company_runs ON runs(companyId);
    CREATE INDEX IF NOT EXISTS company_lessons ON lessons(companyId);
+   CREATE TABLE IF NOT EXISTS duo_reviews(id TEXT PRIMARY KEY,companyId TEXT NOT NULL REFERENCES companies(id),runId TEXT NOT NULL UNIQUE REFERENCES runs(id),data TEXT NOT NULL);
   `);
   }
   transaction<T>(fn: () => T): T {
@@ -38,6 +46,21 @@ export class Store {
       .prepare("SELECT data FROM companies ORDER BY rowid")
       .all()
       .map((r) => JSON.parse(String(r.data)));
+  }
+  duoReviews(companyId: string): DuoReview[] {
+    return this.db
+      .prepare(
+        "SELECT data FROM duo_reviews WHERE companyId=? ORDER BY rowid DESC",
+      )
+      .all(companyId)
+      .map((row) => JSON.parse(String(row.data)));
+  }
+  saveDuoReview(review: DuoReview) {
+    this.db
+      .prepare(
+        "INSERT INTO duo_reviews VALUES(?,?,?,?) ON CONFLICT(id) DO UPDATE SET data=excluded.data",
+      )
+      .run(review.id, review.companyId, review.runId, JSON.stringify(review));
   }
   company(id: string): Company | undefined {
     return this.companies().find((c) => c.id === id);

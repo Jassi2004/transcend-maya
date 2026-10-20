@@ -349,6 +349,7 @@ export class Engine {
     };
     if (run.mode === "connected") {
       run.verification.live = await this.connectors.verify(company);
+      run.verification.liveBefore = run.verification.live;
       run.verification.livePhase = "before_repair";
       if (run.verification.live.every((c) => c.passed))
         throw new Error(
@@ -362,8 +363,8 @@ export class Engine {
     this.step(
       run,
       "verifier",
-      "Candidate checks passed",
-      `${run.verification.candidate.length} independent fixture assertions passed. Baseline failure is reproduced. ${run.mode === "connected" ? "Live verification will run after the approved repair." : "No external code or deployment was changed."}`,
+      "Candidate fixture checks passed",
+      `${run.verification.candidate.length} independent fixture assertions passed. Baseline failure is reproduced. ${run.mode === "connected" ? "Pre-repair HTTP checks reproduced the live failure. Post-repair HTTP checks require approval first." : "No external code or deployment was changed."}`,
       "complete",
       run.verification,
     );
@@ -552,6 +553,7 @@ export class Engine {
           run.verification!.livePhase = "after_repair";
           run.verification!.live = undefined;
           run.verification!.live = await this.connectors.verify(company);
+          run.verification!.liveAfter = run.verification!.live;
           if (
             !run.verification!.live.length ||
             !run.verification!.live.every((c) => c.passed)
@@ -642,6 +644,7 @@ export class Engine {
         run.verification!.livePhase = "after_repair";
         run.verification!.live = undefined;
         run.verification!.live = await this.connectors.verify(company);
+        run.verification!.liveAfter = run.verification!.live;
         if (
           !run.verification!.live.length ||
           !run.verification!.live.every((c) => c.passed)

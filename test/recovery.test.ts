@@ -113,7 +113,14 @@ test("approval is durable before network execution and concurrent approval execu
     );
     assert.ok(engine.tasks.has(run.id));
     release();
-    assert.equal((await action).status, "resolved");
+    const completed = await action;
+    assert.equal(completed.status, "resolved");
+    assert.ok(
+      completed.verification!.liveBefore!.some((check) => !check.passed),
+    );
+    assert.ok(
+      completed.verification!.liveAfter!.every((check) => check.passed),
+    );
     assert.equal(service.repairs, 1);
   } finally {
     release();

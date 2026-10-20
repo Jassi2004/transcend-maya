@@ -8,9 +8,10 @@ import { Store } from "./store.js";
 import { Engine } from "./engine.js";
 import { Connectors, type Connections } from "./connectors.js";
 import { createApp } from "./app.js";
+import { DuoBridge, glabRequest, tokenRequest } from "./duo.js";
 if (process.argv.includes("--help")) {
   console.log(
-    "MAYA — Multi-Agent Yard for Automation\n\nUsage: maya [--port 4200] [--data /path/to/maya.sqlite]\n\nEnvironment: PORT, HOST, DATABASE_PATH, MAYA_ACCESS_TOKEN, COMPANY_A_URL, COMPANY_A_TOKEN, COMPANY_B_URL, COMPANY_B_TOKEN\nNode.js 24+ required. This V1 uses deterministic workers, not a live LLM.",
+    "MAYA — Multi-Agent Yard for Automation\n\nUsage: maya [--port 4200] [--data /path/to/maya.sqlite]\n\nEnvironment: PORT, HOST, DATABASE_PATH, MAYA_ACCESS_TOKEN, COMPANY_A_URL, COMPANY_A_TOKEN, COMPANY_B_URL, COMPANY_B_TOKEN\nOptional read-only Duo review: MAYA_DUO_PROJECT_ID, MAYA_DUO_PROJECT_PATH, MAYA_DUO_CONSUMER_ID, plus MAYA_DUO_AUTH=glab (local) or MAYA_GITLAB_TOKEN (server-only).\nNode.js 24+ required. Repair workers use deterministic recipes; optional Duo reviews run in GitLab.",
   );
   process.exit(0);
 }
@@ -95,14 +96,46 @@ if (
   );
 }
 const engine = new Engine(
-    store,
-    new Connectors(configs),
-    Number(process.env.MAYA_STEP_DELAY_MS || 550),
-  ),
-  app = createApp(engine, {
-    accessToken: process.env.MAYA_ACCESS_TOKEN,
-    secureCookie: process.env.SECURE_COOKIE === "true",
-  });
+  store,
+  new Connectors(configs),
+  Number(process.env.MAYA_STEP_DELAY_MS || 550),
+);
+let duo: DuoBridge | undefined;
+if (process.env.MAYA_DUO_PROJECT_ID) {
+  const projectPath = process.env.MAYA_DUO_PROJECT_PATH,
+    consumerId = process.env.MAYA_DUO_CONSUMER_ID;
+  if (!projectPath || !consumerId)
+    throw new Error(
+      "Duo needs MAYA_DUO_PROJECT_PATH and MAYA_DUO_CONSUMER_ID.",
+    );
+  if (
+    process.env.MAYA_DUO_AUTH === "glab" &&
+    !["localhost", "127.0.0.1", "::1"].includes(host)
+  )
+    throw new Error(
+      "glab authentication is limited to a loopback MAYA instance. Use a dedicated server-side token for hosting.",
+    );
+  const request =
+    process.env.MAYA_DUO_AUTH === "glab"
+      ? glabRequest
+      : process.env.MAYA_GITLAB_TOKEN
+        ? tokenRequest(process.env.MAYA_GITLAB_TOKEN)
+        : undefined;
+  if (!request)
+    throw new Error(
+      "Duo needs local glab authentication or MAYA_GITLAB_TOKEN.",
+    );
+  duo = new DuoBridge(
+    engine,
+    { projectId: process.env.MAYA_DUO_PROJECT_ID, projectPath, consumerId },
+    request,
+  );
+}
+const app = createApp(engine, {
+  accessToken: process.env.MAYA_ACCESS_TOKEN,
+  secureCookie: process.env.SECURE_COOKIE === "true",
+  duo,
+});
 let vite: { close: () => Promise<void> } | undefined;
 const client = fileURLToPath(new URL("../client", import.meta.url));
 if (existsSync(resolve(client, "index.html"))) {
@@ -121,7 +154,7 @@ if (existsSync(resolve(client, "index.html"))) {
 }
 const server = app.listen(port, host, () =>
   console.log(
-    `MAYA → http://${host}:${port} · deterministic sandbox · Duo not connected`,
+    `MAYA → http://${host}:${port} · deterministic repairs · Duo review ${duo ? "configured" : "not configured"}`,
   ),
 );
 for (const signal of ["SIGINT", "SIGTERM"] as const)

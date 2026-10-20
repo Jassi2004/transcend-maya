@@ -10,10 +10,10 @@
     "runtime": "Python 3.12",
     "revision": 1,
     "connector": "company-b",
-    "createdAt": "2026-10-19T20:56:05.243Z"
+    "createdAt": "2026-10-20T06:40:40.419Z"
   },
   "incident": {
-    "id": "27e31d81-e35d-441c-adef-1822d119ec8b",
+    "id": "4682a3ed-1f13-492f-bc95-0476cfe7827f",
     "companyId": "company-b",
     "scenario": "priority-inversion",
     "title": "Support priority inversion",
@@ -32,14 +32,16 @@
     "evidence": [
       "source=live-http service=company-b status=503",
       "reported_fault=priority-inversion",
-      "observed_at=2026-10-19T21:17:31.862Z"
+      "fault_id=d411ec50-ff2e-4b09-8afd-12def14bcab2",
+      "observed_at=2026-10-20T06:44:57.737Z"
     ],
-    "createdAt": "2026-10-19T21:17:31.862Z"
+    "createdAt": "2026-10-20T06:44:57.634Z",
+    "faultId": "d411ec50-ff2e-4b09-8afd-12def14bcab2"
   },
   "run": {
-    "id": "1cfeec45-fcd7-4d48-89be-6352f0bbd242",
+    "id": "a74bc5de-335b-475a-8e01-bee4b61e22ef",
     "companyId": "company-b",
-    "incidentId": "27e31d81-e35d-441c-adef-1822d119ec8b",
+    "incidentId": "4682a3ed-1f13-492f-bc95-0476cfe7827f",
     "status": "resolved",
     "stage": "Live recovery verified",
     "mode": "connected",
@@ -48,44 +50,53 @@
     "scenario": "priority-inversion",
     "steps": [
       {
-        "id": "43c3530e-6dc8-481d-8cd5-fafe738378d7",
+        "id": "36c7d7eb-f654-4194-943c-5bdcdd1c4824",
         "agent": "observer",
         "title": "Evidence captured",
-        "detail": "3 source records captured. Signals came from the connected demo service.",
+        "detail": "4 source records captured. Signals came from the connected demo service.",
         "state": "complete",
-        "at": "2026-10-19T21:17:31.868Z",
+        "at": "2026-10-20T06:44:57.739Z",
         "data": [
           "source=live-http service=company-b status=503",
           "reported_fault=priority-inversion",
-          "observed_at=2026-10-19T21:17:31.862Z"
+          "fault_id=d411ec50-ff2e-4b09-8afd-12def14bcab2",
+          "observed_at=2026-10-20T06:44:57.737Z"
         ]
       },
       {
-        "id": "6073bee5-6e96-46b1-9e3d-fa93c93130d8",
+        "id": "f06ebbd6-de52-4bdb-98df-dfad98fe044c",
         "agent": "memory",
-        "title": "Verified lesson matched",
-        "detail": "Verified playbook v4 matches this company, scenario, runtime, and expiry.",
+        "title": "No verified precedent",
+        "detail": "No active, verified playbook matches this incident. Fresh investigation required.",
         "state": "complete",
-        "at": "2026-10-19T21:17:32.422Z"
+        "at": "2026-10-20T06:44:58.291Z"
       },
       {
-        "id": "d6f73be1-89b3-4d3b-a67e-ade23be2e94f",
+        "id": "db805696-73bf-4938-bf2e-49404535f609",
+        "agent": "investigator",
+        "title": "Root cause isolated",
+        "detail": "CRITICAL_PRIORITY_LOW: replayed the failing contract against the captured fixture. A minimal configuration correction is available.",
+        "state": "complete",
+        "at": "2026-10-20T06:44:58.844Z"
+      },
+      {
+        "id": "72b157fb-7bc3-4411-856a-7cf6ab9f8621",
         "agent": "repair",
         "title": "Minimal repair proposed",
         "detail": "Reset the injected demo fault through the authenticated connector.",
         "state": "complete",
-        "at": "2026-10-19T21:17:32.977Z",
+        "at": "2026-10-20T06:44:59.398Z",
         "data": {
           "priority": "critical"
         }
       },
       {
-        "id": "320e92c8-2e91-42ed-97bd-34780801610b",
+        "id": "f2b41702-ac55-41b2-956b-14b70511fa2a",
         "agent": "verifier",
         "title": "Candidate checks passed",
-        "detail": "3 independent fixture assertions passed. Baseline failure is reproduced. Live verification will run after the approved repair.",
+        "detail": "2 independent fixture assertions passed. Baseline failure is reproduced. Live verification will run after the approved repair.",
         "state": "complete",
-        "at": "2026-10-19T21:17:33.544Z",
+        "at": "2026-10-20T06:45:00.007Z",
         "data": {
           "baseline": [
             {
@@ -99,12 +110,6 @@
               "expected": true,
               "actual": false,
               "passed": false
-            },
-            {
-              "name": "No customer content is changed",
-              "expected": true,
-              "actual": true,
-              "passed": true
             }
           ],
           "candidate": [
@@ -119,19 +124,13 @@
               "expected": true,
               "actual": true,
               "passed": true
-            },
-            {
-              "name": "No customer content is changed",
-              "expected": true,
-              "actual": true,
-              "passed": true
             }
           ],
           "live": [
             {
-              "name": "Live service health returns HTTP 200",
-              "expected": 200,
-              "actual": 503,
+              "name": "Live service reports healthy with no active fault",
+              "expected": "200 \u00b7 healthy \u00b7 company-b \u00b7 none",
+              "actual": "503 \u00b7 degraded \u00b7 company-b \u00b7 priority-inversion",
               "passed": false
             },
             {
@@ -140,32 +139,33 @@
               "actual": "low",
               "passed": false
             }
-          ]
+          ],
+          "livePhase": "before_repair"
         }
       },
       {
-        "id": "ecb51922-0251-473b-96b9-934595f52ff4",
+        "id": "078361bb-4aec-4ec8-9d72-e6e07c819c6b",
         "agent": "approval",
         "title": "Waiting for your approval",
         "detail": "Review the exact patch, evidence, and checks. Approval is bound to this artifact digest and company revision.",
         "state": "complete",
-        "at": "2026-10-19T21:17:34.104Z"
+        "at": "2026-10-20T06:45:00.597Z"
       },
       {
-        "id": "1da47b54-ae7b-4dc9-9005-2614668abcf1",
+        "id": "bf69d9b3-bb8e-47e2-bcb8-2443b43bfa7e",
         "agent": "operator",
         "title": "Exact proposal approved",
-        "detail": "Reviewed the exact configuration and passing fixture checks for the cross-stack demonstration.",
+        "detail": "Reviewed the exact patch and verification evidence.",
         "state": "complete",
-        "at": "2026-10-19T21:17:34.191Z"
+        "at": "2026-10-20T06:45:01.769Z"
       },
       {
-        "id": "33270114-7cd0-424c-bf42-0e366b8e2f2c",
+        "id": "28dc9ded-a19f-4170-9978-15dea419faa7",
         "agent": "verifier",
         "title": "Live recovery verified",
         "detail": "The connected service passed its live health and behavior checks.",
         "state": "complete",
-        "at": "2026-10-19T21:17:34.191Z"
+        "at": "2026-10-20T06:45:01.878Z"
       }
     ],
     "proposal": {
@@ -194,7 +194,7 @@
         "credentialValid": true,
         "priority": "critical"
       },
-      "digest": "75956030605cb8de48a4bb816f6a059ad85b904a8b9bc8ad852be2c31e59616e",
+      "digest": "429a99d42fdb483e6447334715edd15224ad2c7ca6be956b022f1e963bf02b16",
       "action": "Reset the injected demo fault through the authenticated connector.",
       "scope": "company-b \u00b7 demo configuration only"
     },
@@ -211,12 +211,6 @@
           "expected": true,
           "actual": false,
           "passed": false
-        },
-        {
-          "name": "No customer content is changed",
-          "expected": true,
-          "actual": true,
-          "passed": true
         }
       ],
       "candidate": [
@@ -231,19 +225,13 @@
           "expected": true,
           "actual": true,
           "passed": true
-        },
-        {
-          "name": "No customer content is changed",
-          "expected": true,
-          "actual": true,
-          "passed": true
         }
       ],
       "live": [
         {
-          "name": "Live service health returns HTTP 200",
-          "expected": 200,
-          "actual": 200,
+          "name": "Live service reports healthy with no active fault",
+          "expected": "200 \u00b7 healthy \u00b7 company-b \u00b7 none",
+          "actual": "200 \u00b7 healthy \u00b7 company-b \u00b7 none",
           "passed": true
         },
         {
@@ -252,32 +240,23 @@
           "actual": "critical",
           "passed": true
         }
-      ]
+      ],
+      "livePhase": "after_repair"
     },
     "memory": {
-      "kind": "reused",
-      "lessonId": "465cf4ca-b835-4a19-9a42-26d23d077d86",
-      "reason": "Verified playbook v4 matches this company, scenario, runtime, and expiry."
+      "kind": "new",
+      "reason": "No active, verified playbook matches this incident. Fresh investigation required."
     },
-    "createdAt": "2026-10-19T21:17:31.865Z",
-    "finishedAt": "2026-10-19T21:17:34.191Z",
-    "durationMs": 2326
+    "createdAt": "2026-10-20T06:44:57.703Z",
+    "finishedAt": "2026-10-20T06:45:01.878Z",
+    "durationMs": 4175,
+    "faultId": "d411ec50-ff2e-4b09-8afd-12def14bcab2",
+    "approval": {
+      "digest": "429a99d42fdb483e6447334715edd15224ad2c7ca6be956b022f1e963bf02b16",
+      "reason": "Reviewed the exact patch and verification evidence.",
+      "at": "2026-10-20T06:45:01.769Z"
+    },
+    "recoveryRechecked": false
   },
-  "verifiedLessons": [
-    {
-      "id": "465cf4ca-b835-4a19-9a42-26d23d077d86",
-      "companyId": "company-b",
-      "scenario": "priority-inversion",
-      "runtime": "Python 3.12",
-      "version": 4,
-      "status": "active",
-      "title": "Support priority inversion",
-      "patch": {
-        "priority": "critical"
-      },
-      "sourceRunId": "03f4db2a-6187-4910-980c-4a1701de3808",
-      "createdAt": "2026-10-19T21:13:34.153Z",
-      "expiresAt": "2026-11-18T21:13:34.153Z"
-    }
-  ]
+  "verifiedLessons": []
 }

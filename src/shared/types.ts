@@ -80,6 +80,8 @@ export interface Verification {
   baseline: Check[];
   candidate: Check[];
   live?: Check[];
+  liveBefore?: Check[];
+  liveAfter?: Check[];
   livePhase?: "before_repair" | "after_repair";
 }
 export interface MemoryMatch {
@@ -129,6 +131,26 @@ export interface Audit {
   details: unknown;
   createdAt: string;
 }
+export interface DuoReview {
+  id: string;
+  companyId: string;
+  runId: string;
+  evidenceDigest: string;
+  evidence: unknown;
+  projectPath: string;
+  status: string;
+  sessionId?: string;
+  webUrl?: string;
+  messages: {
+    componentName: string | null;
+    messageType: string;
+    content: string;
+  }[];
+  executionVerified: boolean;
+  error?: string;
+  createdAt: string;
+  updatedAt: string;
+}
 export interface Snapshot {
   companies: Company[];
   company: Company;
@@ -145,5 +167,10 @@ export interface Snapshot {
     reused: number;
     staleRejected: number;
   };
-  engine: { provider: "deterministic"; duoConnected: false };
+  engine: {
+    provider: "deterministic";
+    duoConnected: boolean;
+    duoConfigured?: boolean;
+  };
+  duoReviews?: DuoReview[];
 }

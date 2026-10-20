@@ -10,10 +10,10 @@
     "runtime": "Node.js 24",
     "revision": 1,
     "connector": "company-a",
-    "createdAt": "2026-10-19T20:56:05.231Z"
+    "createdAt": "2026-10-20T06:40:40.415Z"
   },
   "incident": {
-    "id": "ed160257-f6bc-45dc-bf32-137aad52543d",
+    "id": "677b3f8a-57d4-4ad3-9aea-012db5bedda6",
     "companyId": "company-a",
     "scenario": "capacity-regression",
     "title": "Booking capacity regression",
@@ -32,14 +32,16 @@
     "evidence": [
       "source=live-http service=company-a status=200",
       "reported_fault=capacity-regression",
-      "observed_at=2026-10-19T21:17:29.514Z"
+      "fault_id=4a2ad31f-7fce-43b7-afcf-a15e658ca113",
+      "observed_at=2026-10-20T06:44:52.236Z"
     ],
-    "createdAt": "2026-10-19T21:17:29.514Z"
+    "createdAt": "2026-10-20T06:44:51.999Z",
+    "faultId": "4a2ad31f-7fce-43b7-afcf-a15e658ca113"
   },
   "run": {
-    "id": "7df0d281-31c3-4319-a92a-e2918b889a66",
+    "id": "6477d671-675f-480e-b82a-1c3ce4026170",
     "companyId": "company-a",
-    "incidentId": "ed160257-f6bc-45dc-bf32-137aad52543d",
+    "incidentId": "677b3f8a-57d4-4ad3-9aea-012db5bedda6",
     "status": "resolved",
     "stage": "Live recovery verified",
     "mode": "connected",
@@ -48,44 +50,53 @@
     "scenario": "capacity-regression",
     "steps": [
       {
-        "id": "766e2564-4d11-4429-8f9c-a428df2cfc84",
+        "id": "b19d86f3-42c4-43c4-9e8f-7446aa3c57aa",
         "agent": "observer",
         "title": "Evidence captured",
-        "detail": "3 source records captured. Signals came from the connected demo service.",
+        "detail": "4 source records captured. Signals came from the connected demo service.",
         "state": "complete",
-        "at": "2026-10-19T21:17:29.519Z",
+        "at": "2026-10-20T06:44:52.239Z",
         "data": [
           "source=live-http service=company-a status=200",
           "reported_fault=capacity-regression",
-          "observed_at=2026-10-19T21:17:29.514Z"
+          "fault_id=4a2ad31f-7fce-43b7-afcf-a15e658ca113",
+          "observed_at=2026-10-20T06:44:52.236Z"
         ]
       },
       {
-        "id": "bbc5832c-191e-4116-9eba-4d037310b0fa",
+        "id": "cd43da25-9424-4a45-a86b-9d8c641ba525",
         "agent": "memory",
-        "title": "Verified lesson matched",
-        "detail": "Verified playbook v4 matches this company, scenario, runtime, and expiry.",
+        "title": "No verified precedent",
+        "detail": "No active, verified playbook matches this incident. Fresh investigation required.",
         "state": "complete",
-        "at": "2026-10-19T21:17:30.073Z"
+        "at": "2026-10-20T06:44:52.791Z"
       },
       {
-        "id": "da834a12-8cf4-48ca-a468-382964cb8ba8",
+        "id": "8c8fab18-4f57-41b9-a746-dd43828d8604",
+        "agent": "investigator",
+        "title": "Root cause isolated",
+        "detail": "BOOKING_CAPACITY_ZERO: replayed the failing contract against the captured fixture. A minimal configuration correction is available.",
+        "state": "complete",
+        "at": "2026-10-20T06:44:53.343Z"
+      },
+      {
+        "id": "7c82b564-cffc-45ce-8509-d14675553171",
         "agent": "repair",
         "title": "Minimal repair proposed",
         "detail": "Reset the injected demo fault through the authenticated connector.",
         "state": "complete",
-        "at": "2026-10-19T21:17:30.636Z",
+        "at": "2026-10-20T06:44:53.895Z",
         "data": {
           "capacity": 4
         }
       },
       {
-        "id": "ecc3f457-e2d1-45df-9e60-f79749cccc45",
+        "id": "7692ca2f-81af-4a78-8340-a4d0cc67394f",
         "agent": "verifier",
         "title": "Candidate checks passed",
         "detail": "3 independent fixture assertions passed. Baseline failure is reproduced. Live verification will run after the approved repair.",
         "state": "complete",
-        "at": "2026-10-19T21:17:31.195Z",
+        "at": "2026-10-20T06:44:54.505Z",
         "data": {
           "baseline": [
             {
@@ -129,10 +140,10 @@
           ],
           "live": [
             {
-              "name": "Live service health returns HTTP 200",
-              "expected": 200,
-              "actual": 200,
-              "passed": true
+              "name": "Live service reports healthy with no active fault",
+              "expected": "200 \u00b7 healthy \u00b7 company-a \u00b7 none",
+              "actual": "200 \u00b7 healthy \u00b7 company-a \u00b7 capacity-regression",
+              "passed": false
             },
             {
               "name": "Live consultation has a bookable seat",
@@ -140,32 +151,33 @@
               "actual": false,
               "passed": false
             }
-          ]
+          ],
+          "livePhase": "before_repair"
         }
       },
       {
-        "id": "ccca008a-b0dd-405a-b763-2a40ac391d00",
+        "id": "a880edce-6811-4062-8665-ecfba1593e69",
         "agent": "approval",
         "title": "Waiting for your approval",
         "detail": "Review the exact patch, evidence, and checks. Approval is bound to this artifact digest and company revision.",
         "state": "complete",
-        "at": "2026-10-19T21:17:31.758Z"
+        "at": "2026-10-20T06:44:55.060Z"
       },
       {
-        "id": "14047ab7-1758-44df-a386-2c3f177798ce",
+        "id": "0d65c130-0c7d-44e8-8a5d-493efe90df3d",
         "agent": "operator",
         "title": "Exact proposal approved",
-        "detail": "Reviewed the exact configuration and passing fixture checks for the cross-stack demonstration.",
+        "detail": "Reviewed the exact patch and verification evidence.",
         "state": "complete",
-        "at": "2026-10-19T21:17:31.814Z"
+        "at": "2026-10-20T06:44:56.848Z"
       },
       {
-        "id": "493973e9-ba02-4170-8cda-b11da421e1be",
+        "id": "11de53b7-774f-4d56-a949-73d838351d6a",
         "agent": "verifier",
         "title": "Live recovery verified",
         "detail": "The connected service passed its live health and behavior checks.",
         "state": "complete",
-        "at": "2026-10-19T21:17:31.814Z"
+        "at": "2026-10-20T06:44:56.955Z"
       }
     ],
     "proposal": {
@@ -194,7 +206,7 @@
         "credentialValid": true,
         "priority": "critical"
       },
-      "digest": "c651a7214b09e84d2830c59262dee4bc9cd741ccdb715d0e7fa1d519b572b7b3",
+      "digest": "d3ec2e08d5a6b3126e9b9140521dabc0ca1d85743bb73cd9b8f0e5c7d5bf62fa",
       "action": "Reset the injected demo fault through the authenticated connector.",
       "scope": "company-a \u00b7 demo configuration only"
     },
@@ -241,9 +253,9 @@
       ],
       "live": [
         {
-          "name": "Live service health returns HTTP 200",
-          "expected": 200,
-          "actual": 200,
+          "name": "Live service reports healthy with no active fault",
+          "expected": "200 \u00b7 healthy \u00b7 company-a \u00b7 none",
+          "actual": "200 \u00b7 healthy \u00b7 company-a \u00b7 none",
           "passed": true
         },
         {
@@ -252,32 +264,23 @@
           "actual": true,
           "passed": true
         }
-      ]
+      ],
+      "livePhase": "after_repair"
     },
     "memory": {
-      "kind": "reused",
-      "lessonId": "6b88c4ff-6842-41a6-bacd-792e7015a61f",
-      "reason": "Verified playbook v4 matches this company, scenario, runtime, and expiry."
+      "kind": "new",
+      "reason": "No active, verified playbook matches this incident. Fresh investigation required."
     },
-    "createdAt": "2026-10-19T21:17:29.517Z",
-    "finishedAt": "2026-10-19T21:17:31.814Z",
-    "durationMs": 2297
+    "createdAt": "2026-10-20T06:44:52.203Z",
+    "finishedAt": "2026-10-20T06:44:56.955Z",
+    "durationMs": 4752,
+    "faultId": "4a2ad31f-7fce-43b7-afcf-a15e658ca113",
+    "approval": {
+      "digest": "d3ec2e08d5a6b3126e9b9140521dabc0ca1d85743bb73cd9b8f0e5c7d5bf62fa",
+      "reason": "Reviewed the exact patch and verification evidence.",
+      "at": "2026-10-20T06:44:56.848Z"
+    },
+    "recoveryRechecked": false
   },
-  "verifiedLessons": [
-    {
-      "id": "6b88c4ff-6842-41a6-bacd-792e7015a61f",
-      "companyId": "company-a",
-      "scenario": "capacity-regression",
-      "runtime": "Node.js 24",
-      "version": 4,
-      "status": "active",
-      "title": "Booking capacity regression",
-      "patch": {
-        "capacity": 4
-      },
-      "sourceRunId": "74436864-37a9-4ef8-8f52-1be025a84f14",
-      "createdAt": "2026-10-19T21:13:27.367Z",
-      "expiresAt": "2026-11-18T21:13:27.367Z"
-    }
-  ]
+  "verifiedLessons": []
 }

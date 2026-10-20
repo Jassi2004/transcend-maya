@@ -15,7 +15,9 @@ flowchart LR
   R --> H{Separate operator review}
   H --> M
   API --> P[Duo evidence handoff JSON]
-  P -. enabled; execution proof pending .-> D[GitLab Duo read-only review flow]
+  P --> F[Frozen snapshot + SHA-256]
+  F --> D[GitLab Duo supervisor + investigator + verifier]
+  D --> S[Exact session polling + retained reports]
 ```
 
 ## State and trust
@@ -30,7 +32,7 @@ Approval is checked against a SHA-256 digest of company, incident, context revis
 
 Injection intent is saved before contacting a company. A lost response retains the incident and requires fresh live evidence. Restart recovery marks unfinished runs and incident summaries interrupted; it never repeats a write. An approved but uncertain recovery can be rechecked through a read-only operation. This may confirm current health, but creates no causal repair lesson. Retrying an investigation refreshes the evidence without injecting another fault. Live mutation and recheck tasks are included in graceful shutdown waiting.
 
-The verifier executes contract assertions against captured baseline and candidate fixtures. Live connectors separately query actual health/availability/classification. Fixture success alone is never shown as live recovery. Because this V1 uses a deterministic scenario recipe, it does not discover arbitrary bugs or edit application source.
+The verifier executes contract assertions against captured baseline and candidate fixtures. Before/after HTTP checks are retained separately as `liveBefore` and `liveAfter`; the compatible `live` field holds the latest phase. Live connectors separately query actual health/availability/classification. Fixture success alone is never shown as live recovery. Because this V1 uses a deterministic scenario recipe, it does not discover arbitrary bugs or edit application source.
 
 ## Memory
 
@@ -40,11 +42,15 @@ Active lessons must match company, scenario, runtime and a valid expiry. A candi
 
 MAYA's npm tarball contains the built server/client, CLI, docs and Duo YAML. The backend, storage, and a running process are still required. The npm package is not published. Each company can be deployed independently. The parent Docker Compose configuration is a local integration harness and is not a fourth product repository.
 
-## GitLab platform gates
+## GitLab Duo review bridge
 
-The read-only flow bundle uses `AgentComponent.subagents` defined in the same YAML. It is registered and enabled in GitLab as MAYA Incident Review v1.0.0. The flow service account has Developer access to Showcase, and GitLab reports an available runner. Runtime execution and credits still require a real successful session. Its source is not evidence of execution. The simulator's approvals do not automatically become `HumanInputComponent` approvals in GitLab.
+The read-only flow uses `AgentComponent.subagents` in the same YAML. MAYA Incident Review v1.0.0 is registered and enabled in Showcase. Completed sessions for both company handoffs prove real supervisor delegation and final reports; source definitions alone do not. [Execution records](evidence/duo-reviews.json) distinguish the reviewed historical examples from current service checks.
 
-Custom-flow API launch, external MCP configuration, and scoped gateway authentication need a platform proof before any claim of autonomous Duo operation. Normal custom CI/CD variables are not assumed available to Duo flow jobs. No private provider token is embedded in the flow bundle.
+An operator explicitly shares one run's frozen evidence. A separate SQLite record stores its SHA-256, company/run scope, destination project, session ID and reports. The bridge journals intent before the REST mutation, requires a runner workload, and never automatically repeats an ambiguous submission. Duplicate starts return the same record. GraphQL polling verifies the exact session ID. `FINISHED` with an agent report and no checkpoint errors establishes execution; it does not establish that the model's conclusions are correct.
+
+The bridge neither edits runs nor calls approval, repair or lesson-review methods. Review results remain untrusted text in the UI. A later repair does not rewrite the evidence that was shared. Company-scoped exports retain both histories. The shared local/demo operator can access all workspaces; this is not enterprise multi-tenant authorization.
+
+Local loopback processes may use `glab` with its existing authentication. Hosted processes require a separate server-side `MAYA_GITLAB_TOKEN`. Credentials never enter the goal, repository or browser. The transport uses fixed GitLab.com endpoints and no shell execution. Enable only the reviewed read-only catalog flow. Ordinary CI/CD variables are not assumed available to Duo jobs. The enabled flow cannot directly call MAYA's recovery endpoints.
 
 ## Deployment limits
 

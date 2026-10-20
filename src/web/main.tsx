@@ -57,6 +57,7 @@ import {
 import type {
   Check as CheckType,
   Company,
+  DuoReview,
   Lesson,
   Run,
   Scenario,
@@ -289,7 +290,7 @@ function App() {
           </p>
           <span className="mode-label">
             <FlaskConical size={14} />
-            Deterministic V1 · live Duo not connected
+            Controlled repairs · independent GitLab Duo review
           </span>
         </div>
         <form className="login-form" onSubmit={(e) => void login(e)}>
@@ -531,8 +532,10 @@ function App() {
                       ? "Live demo connector"
                       : "Isolated simulation"}
                   </strong>{" "}
-                  · Workers use deterministic rules. GitLab Duo is not
-                  connected.
+                  · Repairs use deterministic rules.{" "}
+                  {data.engine.duoConfigured
+                    ? "GitLab Duo review is available for each run."
+                    : "GitLab Duo review is not configured on this server."}
                 </span>
                 <a
                   href="#environment"
@@ -764,6 +767,11 @@ function App() {
                             )
                           }
                           openMemory={() => setView("Memory")}
+                          duoConfigured={!!data.engine.duoConfigured}
+                          duoReview={data.duoReviews?.find(
+                            (review) => review.runId === run.id,
+                          )}
+                          refreshSnapshot={() => refresh(companyId)}
                         />
                       ) : (
                         <div className="run-welcome">
@@ -1266,6 +1274,163 @@ function Empty({
     </section>
   );
 }
+function DuoPanel({
+  companyId,
+  run,
+  configured,
+  review,
+  onUpdate,
+}: {
+  companyId: string;
+  run: Run;
+  configured: boolean;
+  review?: DuoReview;
+  onUpdate: () => Promise<void>;
+}) {
+  const [consent, setConsent] = useState(false),
+    [pending, setPending] = useState(false),
+    [error, setError] = useState("");
+  const path = `/api/companies/${companyId}/runs/${run.id}/duo`;
+  async function update(start = false) {
+    setPending(true);
+    setError("");
+    try {
+      await api(start ? path : `${path}/refresh`, {
+        method: "POST",
+        body: JSON.stringify(start ? { shareEvidence: true } : {}),
+      });
+      await onUpdate();
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setPending(false);
+    }
+  }
+  useEffect(() => {
+    if (
+      !configured ||
+      !review ||
+      ![
+        "CREATED",
+        "RUNNING",
+        ...(review.executionVerified ? [] : ["FINISHED"]),
+      ].includes(review.status)
+    )
+      return;
+    const timer = setInterval(() => void update(), 15_000);
+    return () => clearInterval(timer);
+  }, [path, configured, review?.status]);
+  const final =
+    review?.messages.filter((message) => message.messageType === "agent") || [];
+  return (
+    <section className="duo-review-panel">
+      <div className="section-title">
+        <Sparkles size={14} />
+        <h3>GitLab Duo review</h3>
+        <span>
+          {review?.executionVerified
+            ? "Execution verified"
+            : review?.status.toLowerCase().replaceAll("_", " ") ||
+              (configured ? "Ready" : "Not configured")}
+        </span>
+      </div>
+      {review ? (
+        <>
+          <p>
+            Review of a frozen evidence snapshot captured{" "}
+            {new Date(review.createdAt).toLocaleString()}. Repairs and memory
+            promotion still require separate approval.
+          </p>
+          <div className="duo-review-links">
+            {review.webUrl && (
+              <a href={review.webUrl} target="_blank" rel="noreferrer">
+                Open GitLab session <ExternalLink size={12} />
+              </a>
+            )}
+            {configured &&
+              !["FAILED", "STOPPED"].includes(review.status) &&
+              !(review.status === "FINISHED" && review.executionVerified) && (
+                <button
+                  className="text-button"
+                  disabled={pending || !review.sessionId}
+                  onClick={() => void update()}
+                >
+                  {pending ? "Checking…" : "Refresh review"}
+                </button>
+              )}
+          </div>
+          <small>
+            Evidence SHA-256: <code>{review.evidenceDigest}</code>
+          </small>
+          {review.error && <p className="duo-error">{review.error}</p>}
+          {final.map((message, i) => (
+            <details key={i} open={i === final.length - 1}>
+              <summary>{message.componentName || "Duo"} report</summary>
+              <pre>{message.content}</pre>
+            </details>
+          ))}
+          {!!review.messages.length && (
+            <details>
+              <summary>
+                Delegation and tool evidence (
+                {
+                  review.messages.filter((m) => m.messageType !== "agent")
+                    .length
+                }
+                )
+              </summary>
+              {review.messages
+                .filter((m) => m.messageType !== "agent")
+                .map((message, i) => (
+                  <pre key={i}>{message.content}</pre>
+                ))}
+            </details>
+          )}
+          {review.status === "SUBMITTING" && (
+            <p>
+              Submission was journaled. If interrupted, inspect GitLab before
+              retrying; MAYA will not launch a duplicate.
+            </p>
+          )}
+        </>
+      ) : (
+        <>
+          <p>
+            {configured
+              ? "Ask the supervisor, investigator and verifier to independently review this incident. This shares the run, company context and active lessons with the configured GitLab project."
+              : "Download the Duo handoff above, or configure a server-side GitLab connection to launch a real review here."}
+          </p>
+          {configured && (
+            <>
+              <label className="duo-consent">
+                <input
+                  type="checkbox"
+                  checked={consent}
+                  onChange={(e) => setConsent(e.target.checked)}
+                />
+                Share this run’s evidence with GitLab Duo
+              </label>
+              <button
+                className="button secondary"
+                disabled={!consent || pending || run.status === "running"}
+                onClick={() => void update(true)}
+              >
+                <Sparkles size={14} />
+                {pending ? "Starting review…" : "Review with GitLab Duo"}
+              </button>
+            </>
+          )}
+        </>
+      )}
+      {error && (
+        <p className="duo-error" role="alert">
+          {error}
+        </p>
+      )}
+    </section>
+  );
+}
+
 function RunDetail({
   run,
   title,
@@ -1276,6 +1441,9 @@ function RunDetail({
   openMemory,
   retry,
   recheck,
+  duoConfigured,
+  duoReview,
+  refreshSnapshot,
 }: {
   run: Run;
   title: string;
@@ -1286,6 +1454,9 @@ function RunDetail({
   openMemory: () => void;
   retry: () => void;
   recheck: () => void;
+  duoConfigured: boolean;
+  duoReview?: DuoReview;
+  refreshSnapshot: () => Promise<void>;
 }) {
   const [reason, setReason] = useState(
     "Reviewed the exact patch and verification evidence.",
@@ -1318,6 +1489,13 @@ function RunDetail({
           </button>
         </div>
       </div>
+      <DuoPanel
+        companyId={company.id}
+        run={run}
+        configured={duoConfigured}
+        review={duoReview}
+        onUpdate={refreshSnapshot}
+      />
       <div className="run-pipeline">
         {["Signal", "Investigate", "Verify", "Approve", "Remember"].map(
           (label, i) => {
@@ -1858,7 +2036,12 @@ function Environment({
           <dt>Connector</dt>
           <dd>{data.connection.label}</dd>
           <dt>Execution engine</dt>
-          <dd>Deterministic workers · no LLM calls</dd>
+          <dd>
+            Deterministic repairs ·{" "}
+            {data.engine.duoConfigured
+              ? "GitLab Duo review configured"
+              : "Duo review not configured"}
+          </dd>
         </dl>
         <form
           onSubmit={(e) => {
@@ -1943,11 +2126,12 @@ function Environment({
         )}
         <div className="duo-boundary">
           <GitBranch size={18} />
-          <h3>GitLab Duo is the next integration.</h3>
+          <h3>Independent GitLab Duo review</h3>
           <p>
-            The repository includes an incident-review flow definition and
-            downloadable evidence handoffs. No live Duo session has been
-            launched or verified by this V1.
+            {data.engine.duoConfigured
+              ? "Open a run to share its frozen evidence with the enabled supervisor, investigator and verifier flow. Results and the actual GitLab session are retained with that run."
+              : "This server has no Duo credential configured. Each run still exports a handoff for manual review. Configure the server to launch and retrieve real GitLab reviews."}{" "}
+            Duo cannot approve repairs or promote lessons.
           </p>
         </div>
       </section>

@@ -2,7 +2,7 @@
 
 **Multi-Agent Yard for Automation.** A company-aware incident lab with evidence, explicit repair approval, independent checks, and reviewed operational memory.
 
-V1 is a working **deterministic sandbox**, not a live LLM workforce. It supports isolated fixtures and two real, authenticated demo-service connectors. GitLab Duo source definitions and evidence handoffs are included; no live Duo execution is claimed. That integration remains necessary for a qualifying GitLab hackathon submission.
+MAYA combines **controlled deterministic recovery** with **real GitLab Duo evidence reviews**. Two authenticated demo connectors recover TypeScript booking and Python support services. A separate Duo supervisor delegates to an investigator and verifier; their reports are retained with the frozen evidence and actual session link. Duo does not approve repairs or promote memory.
 
 ## Start locally
 
@@ -43,7 +43,7 @@ Repair authorization is saved before the network request. Each live fault has an
 | Fixture contracts and live post-repair verification | Working |
 | Scoped memory, review, versioning, expiry, stale-runtime rejection | Working |
 | GitHub Actions CI, cross-stack browser checks, and commit-tagged GHCR delivery | Working; see Actions and delivery evidence |
-| GitLab Duo supervisor/specialist flow | v1.0.0 registered and enabled; successful execution pending |
+| GitLab Duo supervisor/specialist flow | Enabled; actual reviews completed for both companies. Optional per-run API/UI integration |
 | GitHub/GitLab merge requests, arbitrary CI repair, vendor monitoring | Not implemented |
 | Continuous autonomous monitoring or production healing | Not implemented |
 
@@ -71,15 +71,29 @@ If the database was first started without Company A's connector, its seeded work
 
 `render.yaml` defines three free web services and generates connector/access secrets through Render. No payment is required by this blueprint. Free services sleep when idle; warm them before a demo. Their filesystem is ephemeral: **SQLite may reset on restarts/redeploys**. For durable shared hosting, add persistent disks or a managed database after choosing a budget. The local Docker deployment already uses persistent volumes.
 
-Hosted demos: [MAYA](https://maya-yard-jassi.onrender.com), [Company A](https://maya-company-a-jassi.onrender.com), [Company B](https://maya-company-b-jassi.onrender.com). Their health endpoints are verified; authenticated cloud recovery testing is pending.
+Hosted demos: [MAYA](https://maya-yard-jassi.onrender.com), [Company A](https://maya-company-a-jassi.onrender.com), [Company B](https://maya-company-b-jassi.onrender.com). Their health endpoints and the authenticated cross-stack recovery browser journey passed on 20 October. Hosted Duo requires a separately configured server credential.
 
 The operator key is `MAYA_ACCESS_TOKEN` in MAYA's Render Environment settings. A free deployment is suitable for synthetic demo data, not customer production use. Current deployment links and verification evidence belong in `docs/DELIVERY.md`.
 
 ## GitLab Duo
 
-`.gitlab/duo/flows/incident-review.yml` defines a supervisor, investigator and verifier. [MAYA Incident Review v1.0.0](https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43459489/showcase/-/automate/flows/1018799) is registered and enabled for Showcase; an actual successful run against an exported handoff is still pending. Committing the YAML alone does not activate it. This initial flow is read-only and cannot approve or deploy. The local simulator is intentionally not relabeled as Duo.
+`.gitlab/duo/flows/incident-review.yml` defines the read-only supervisor, investigator and verifier. [MAYA Incident Review v1.0.0](https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43459489/showcase/-/automate/flows/1018799) is enabled in [Showcase](https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43459489/showcase). Actual reviews completed for [Company A](https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43459489/showcase/-/automate/agent-sessions/9727299) and [Company B](https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43459489/showcase/-/automate/agent-sessions/9727615). See [execution evidence](docs/evidence/duo-reviews.json). These reviewed earlier synthetic handoffs; they do not establish present service health. The actual app/UI bridge also completed [session 9727804](https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43459489/showcase/-/automate/agent-sessions/9727804) after a connected recovery; [frozen evidence and result](docs/evidence/app-duo-review.json) are retained.
 
-Next platform gates: a successful runner session, credit/identity confirmation, scoped gateway authentication, and supported programmatic launch. Normal GitLab CI secrets must not be assumed available to Duo jobs. See `docs/ARCHITECTURE.md`.
+To connect the per-run review UI, configure the **server process** (never the browser):
+
+```sh
+export MAYA_DUO_PROJECT_ID=87777593
+export MAYA_DUO_PROJECT_PATH=gitlab-ai-hackathon/transcend-october-2026/43459489/showcase
+export MAYA_DUO_CONSUMER_ID=12818674
+export MAYA_DUO_AUTH=glab
+npm start
+```
+
+This local mode requires an authenticated `glab` CLI and a loopback host. The CLI retains its credential; MAYA does not extract it. For hosting, omit `MAYA_DUO_AUTH` and configure `MAYA_GITLAB_TOKEN` in server environment settings using a dedicated, short-lived API token whose owner can run the enabled flow in that project. The token is excluded from prompts, exports and UI. Never commit it. Use only a reviewed, read-only enabled flow for this integration.
+
+Open a completed investigation, check **Share this run’s evidence with GitLab Duo**, then **Review with GitLab Duo**. MAYA freezes and hashes the evidence, calls GitLab's workflow REST API with the enabled consumer and `start_workflow: true`, and polls the exact session through GraphQL. A created session alone is not execution proof: the UI marks execution verified only after `FINISHED`, an agent report and no reported execution errors. Polling never launches another session. Ambiguous submissions remain recorded and require inspecting GitLab rather than blindly retrying. The repair remains a separate, exact-artifact approval.
+
+The live browser check is deliberately opt-in because it consumes real Duo credits: set `MAYA_DUO_LIVE_TEST=true`, the deployment URLs and operator key, then run `npm run test:connected -- --grep 'opt-in: a real GitLab Duo'`. Routine CI covers the bridge with a fake transport and the UI with mocked GitLab responses; those tests are not represented as actual Duo execution.
 
 ## Security scope
 

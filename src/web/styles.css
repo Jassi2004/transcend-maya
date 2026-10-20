@@ -3052,19 +3052,19 @@ input::placeholder {
 .duo-review-panel {
   margin: 20px 24px;
   padding: 18px;
-  border: 1px solid #dfd9f2;
-  background: #faf8ff;
+  border: 1px solid #38304e;
+  background: #171522;
   border-radius: 10px;
 }
 .duo-review-panel p {
-  color: #605a72;
+  color: #a9a2bb;
   font-size: 12px;
   line-height: 1.7;
   margin: 10px 0;
 }
 .duo-review-panel small {
   display: block;
-  color: #777080;
+  color: #9890a8;
   font-size: 10px;
   overflow-wrap: anywhere;
 }
@@ -3079,7 +3079,7 @@ input::placeholder {
   gap: 6px;
   align-items: center;
   font-size: 12px;
-  color: #6c49a1;
+  color: var(--violet);
 }
 .duo-review-panel details {
   margin-top: 14px;
@@ -3087,7 +3087,7 @@ input::placeholder {
 }
 .duo-review-panel summary {
   cursor: pointer;
-  color: #594273;
+  color: #c8b7ee;
   font-weight: 600;
 }
 .duo-review-panel pre {
@@ -3099,7 +3099,8 @@ input::placeholder {
   max-height: 480px;
   overflow: auto;
   padding: 12px;
-  background: #fff;
+  background: #10101a;
+  color: #dce1eb;
   border-radius: 7px;
 }
 .duo-consent {
@@ -3113,7 +3114,7 @@ input::placeholder {
   width: auto;
 }
 .duo-review-panel .duo-error {
-  color: #a73737;
+  color: #f0a0a0;
 }
 @media (max-width: 600px) {
   .duo-review-panel {

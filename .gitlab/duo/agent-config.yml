@@ -1,2 +1,3 @@
-image: node:24-bookworm-slim
-# Runner configuration and tool availability must be verified in the provisioned project.
+# Duo's workload bootstrap needs git and curl before any agent starts.
+# The full official Node image includes both; the slim image does not.
+image: node:24-bookworm

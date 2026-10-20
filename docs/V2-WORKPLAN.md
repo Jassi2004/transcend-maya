@@ -66,8 +66,15 @@ Cloud SQLite persistence must be described and export/restore supported.
 - [x] Second failure using reviewed memory and supervised staging
 - [x] Hosted V2 deployment and restoration verification
 
-Final deployed application revision: `53707348aa23f4f4a010cf4025d3187ada986a8e`.
+Initial verified application revision: `53707348aa23f4f4a010cf4025d3187ada986a8e`.
 GitHub and GitLab CI passed. After the Render restart, both resolved deliveries,
 two active lessons, one retired lesson and the original six workforce tasks were
 preserved. A separate read-only restore into an empty in-memory database verified
 all 74 evidence hashes. See [final verification](evidence/delivery-v2-final-verification.json).
+
+Follow-up deployed revision: `7cd3d97ad739976c5cd339904526aff3723ef86b`.
+Company B's scoped GitHub credential now supports hosted source discovery and
+Actions observation. Monitoring is enabled and confirmed in a fresh checkpoint
+restore. Deployment handover claims checkpoint ownership before observers start;
+42 backend tests, seven UI tests, connected-service tests and both source-provider
+CI pipelines passed. [Activation and persistence proof](evidence/github-activation-v2.json).

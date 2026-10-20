@@ -64,7 +64,7 @@ See [the three-minute walkthrough](DEMO.md) for a concise demonstration script.
 
 ## Deployed release and restart verification
 
-Hosted MAYA runs application commit `53707348aa23f4f4a010cf4025d3187ada986a8e`.
+The first restart verification used application commit `53707348aa23f4f4a010cf4025d3187ada986a8e`.
 [GitHub verification, connected-browser tests and image delivery](https://github.com/Jassi2004/transcend-maya/actions/runs/39424975628)
 and [the public GitLab pipeline](https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43459489/showcase/-/pipelines/2967528551)
 passed. The suite includes 40 backend tests and seven UI tests; connected Docker
@@ -82,7 +82,7 @@ operations reads returned 401. [Machine-readable final verification](evidence/de
 The demo uses periodic encrypted checkpoints on GitLab, not a production database.
 Do not run another controller against the same checkpoint and repositories while
 the hosted observer is active. Documentation-only source commits skip CI and Render;
-the tested application revision above remains deployed.
+the application revision is recorded separately in each proof file.
 
 An environment-triggered deployment later exposed a checkpoint handover race:
 Render briefly overlapped outgoing and incoming processes. The incoming process
@@ -92,6 +92,19 @@ is reread, an ambiguous successful claim is reconciled without another write,
 and denied ownership stops startup. Two additional backend tests cover these
 conditions; the suite now has 42 backend tests. The earlier verification above
 records the previous release separately from this follow-up fix.
+
+The follow-up application `7cd3d97ad739976c5cd339904526aff3723ef86b` is deployed.
+[GitHub CI](https://github.com/Jassi2004/transcend-maya/actions/runs/39429472463)
+and [GitLab CI](https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43459489/showcase/-/pipelines/2967678758)
+passed. Hosted Company B source discovery and Actions observation succeeded after
+the restart. Its enabled monitoring was written to the encrypted checkpoint and
+confirmed through a fresh read-only restore, with all 74 evidence hashes intact.
+The two resolved GitLab deliveries, reviewed lessons and six original workforce
+tasks remain. [Activation and persistence proof](evidence/github-activation-v2.json).
+GitHub PR publication and merge have not yet been exercised; Company B remains
+assisted, with Duo sharing and automatic investigation disabled.
+
+![Company B connected, monitoring enabled and encrypted checkpoint saved](screenshots/github-company-b-connected.jpg)
 
 ## Reproduce
 

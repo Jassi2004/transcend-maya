@@ -1,0 +1,53 @@
+{
+  "schema": "maya-github-activation-v2",
+  "recordedAt": "2026-10-20T13:30:09.895Z",
+  "deployedApplication": "7cd3d97ad739976c5cd339904526aff3723ef86b",
+  "repository": "https://github.com/Jassi2004/transcend-company-b",
+  "headSha": "7f104f3ae9662fe5771ffc621cd97c6c3b18ebd3",
+  "stack": [
+    "Python",
+    "HTML",
+    "Dockerfile",
+    "FastAPI"
+  ],
+  "observedAt": "2026-10-20T13:29:47.789Z",
+  "monitoring": true,
+  "sourceDiscovery": "successful",
+  "sourceFiles": 5,
+  "actionsObservation": "successful",
+  "workflows": [
+    {
+      "path": ".github/workflows/ci.yml",
+      "name": "Verify and deliver",
+      "jobs": [
+        "verify",
+        "deliver"
+      ]
+    }
+  ],
+  "policy": {
+    "automationMode": "assisted",
+    "shareWithDuo": false,
+    "autoInvestigate": false
+  },
+  "checkpoint": {
+    "mode": "encrypted-checkpoint",
+    "lastSavedAt": "2026-10-20T13:29:30.648Z"
+  },
+  "readOnlyRestore": {
+    "monitoringPreserved": true,
+    "evidenceHashesVerified": 74,
+    "previousResolvedDeliveries": 2,
+    "previousActiveLessons": 2,
+    "duplicateWorkforceTasks": false
+  },
+  "ci": {
+    "github": "https://github.com/Jassi2004/transcend-maya/actions/runs/39429472463",
+    "gitlab": "https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43459489/showcase/-/pipelines/2967678758"
+  },
+  "limits": [
+    "GitHub source and Actions read access are verified; GitHub repair publication and merge have not yet been exercised.",
+    "The complete two repair/deployment proofs remain GitLab staging.",
+    "Periodic single-writer encrypted checkpoints are not a production database."
+  ]
+}

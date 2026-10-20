@@ -82,7 +82,7 @@ test("Actions log redirects reject credentials, private networks and unexpected 
 });
 function setup(
   options: {
-    protectedEdit?: boolean;
+    protectedEdit?: boolean | string;
     supervised?: boolean;
     delayedMerge?: boolean;
   } = {},
@@ -119,6 +119,8 @@ function setup(
     "package.json": '{"type":"module"}',
     ".env.example": "PAYMENT_SECRET=do-not-retain-this-value\n",
   };
+  if (typeof options.protectedEdit === "string")
+    sources[options.protectedEdit] = "# Existing company build configuration\n";
   const sourceBlob = (path: string) =>
     path === ".maya.yml" ? (stalePolicy ? "e" : "f").repeat(40) : blobSha;
   const plan: RepairPlan = {
@@ -130,7 +132,12 @@ function setup(
     evidenceIds: [],
     files: [
       {
-        path: options.protectedEdit ? "test/price.test.js" : "lib/price.js",
+        path:
+          typeof options.protectedEdit === "string"
+            ? options.protectedEdit
+            : options.protectedEdit
+              ? "test/price.test.js"
+              : "lib/price.js",
         originalSha: blobSha,
         content: "export const fee = x => x >= 50 ? 0 : 8;\n",
         rationale: "Restore inclusive threshold without weakening any test.",
@@ -802,6 +809,37 @@ test("a timed-out merge is reconciled by observer reads, including delayed provi
     );
   } finally {
     s.store.db.close();
+  }
+});
+
+test("supervised Python repairs cannot rewrite dependency or deployment configuration without review", async () => {
+  for (const path of [
+    "pyproject.toml",
+    "requirements.txt",
+    "Dockerfile",
+    "render.yaml",
+  ]) {
+    const s = setup({ protectedEdit: path });
+    try {
+      await onboard(s);
+      await s.ops.settings("alpha", { automationMode: "supervised" });
+      const incident = s.ops.report("alpha", {
+        title: "Build configuration proposal",
+        summary: "The proposed fix changes a company build or deployment file",
+        category: "ci",
+        severity: "high",
+      });
+      const work = await s.ops.investigate("alpha", incident.id);
+      await s.ops.refreshTask("alpha", work.taskId!);
+      assert.equal(
+        s.db.get<OpsIncident>("incident", "alpha", incident.id).status,
+        "awaiting_approval",
+        path,
+      );
+      assert.equal(s.counts.commits, 0, path);
+    } finally {
+      s.store.db.close();
+    }
   }
 });
 

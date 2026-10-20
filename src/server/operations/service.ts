@@ -1019,7 +1019,7 @@ export class Operations {
             "blocked",
           );
           const protectedPaths =
-            /(?:^|\/)(?:test|tests|__tests__|\.github|scripts)\/|(?:\.test\.|\.spec\.|^\.gitlab-ci\.yml$|^\.maya\.ya?ml$|^package(?:-lock)?\.json$)/;
+            /(?:^|\/)(?:test|tests|__tests__|\.github|scripts)\/|(?:\.test\.|\.spec\.|^\.gitlab-ci\.yml$|^\.maya\.ya?ml$|(?:^|\/)(?:package(?:-lock)?\.json|pyproject\.toml|uv\.lock|poetry\.lock|Pipfile(?:\.lock)?|requirements[^/]*\.txt|setup\.(?:py|cfg)|Dockerfile(?:\.[^/]+)?|(?:docker-)?compose\.ya?ml|render\.ya?ml)$)/;
           automatic =
             repo.automationMode === "supervised" &&
             repo.shareWithDuo &&

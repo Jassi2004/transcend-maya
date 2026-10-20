@@ -1088,6 +1088,106 @@ test("encrypted checkpoints authenticate content, preserve scope and restore evi
   }
 });
 
+test("periodic checkpoints reconcile lost acknowledgements without duplicate writes or stealing ownership", async () => {
+  const s = setup(),
+    incoming = setup();
+  try {
+    await onboard(s);
+    let saved = "",
+      revision = 0,
+      writes = 0,
+      loseReply = true,
+      denyWrite = false;
+    const api = async (path: string, method = "GET", body?: any) => {
+      if (path.includes("repository/files")) {
+        if (!saved) throw new DomainError(404, "No checkpoint");
+        return {
+          content: Buffer.from(saved).toString("base64"),
+          last_commit_id: String(revision),
+        };
+      }
+      if (method === "POST") {
+        writes++;
+        if (denyWrite) throw new Error("Write denied before commit");
+        assert.equal(
+          body.actions[0].last_commit_id,
+          saved ? String(revision) : undefined,
+        );
+        saved = body.actions[0].content;
+        revision++;
+        if (loseReply) {
+          loseReply = false;
+          throw new Error("Acknowledgement lost after commit");
+        }
+        return { id: String(revision) };
+      }
+      return { default_branch: "main" };
+    };
+    const backup = new GitLabBackup(s.db, api, "12", "stable-key");
+    await backup.restore();
+    await backup.save();
+    assert.equal(writes, 1);
+    assert.equal(backup.error, undefined);
+    assert.ok(backup.lastSavedAt);
+    await backup.save();
+    assert.equal(
+      writes,
+      1,
+      "Reconciliation does not resubmit the committed snapshot",
+    );
+    s.db.evidence({
+      companyId: "alpha",
+      projectId: s.ops.repository("alpha").id,
+      kind: "log",
+      name: "after-loss.log",
+      content: "A later observation",
+    });
+    await backup.save();
+    assert.equal(
+      writes,
+      2,
+      "The next changed snapshot uses the reconciled CAS identity",
+    );
+    assert.equal(backup.error, undefined);
+    s.db.evidence({
+      companyId: "alpha",
+      projectId: s.ops.repository("alpha").id,
+      kind: "log",
+      name: "denied.log",
+      content: "This observation has not been checkpointed yet",
+    });
+    denyWrite = true;
+    await backup.save();
+    assert.ok(
+      backup.error,
+      "An older owned checkpoint cannot acknowledge unsaved new state",
+    );
+    denyWrite = false;
+    await backup.save();
+    assert.equal(backup.error, undefined);
+    const active = new GitLabBackup(incoming.db, api, "12", "stable-key");
+    await active.restore({ claimWriter: true });
+    const claimed = saved;
+    s.db.evidence({
+      companyId: "alpha",
+      projectId: s.ops.repository("alpha").id,
+      kind: "log",
+      name: "fenced.log",
+      content: "An outgoing observation",
+    });
+    await backup.save();
+    assert.ok(backup.error);
+    assert.equal(
+      saved,
+      claimed,
+      "Read-only reconciliation cannot take another writer's checkpoint",
+    );
+  } finally {
+    s.store.db.close();
+    incoming.store.db.close();
+  }
+});
+
 test("deployment checkpoint handoff preserves a racing final save and fences the outgoing writer", async () => {
   const old = setup(),
     incoming = setup(),

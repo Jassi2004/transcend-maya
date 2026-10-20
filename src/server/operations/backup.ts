@@ -245,10 +245,12 @@ export class GitLabBackup {
   async save() {
     if (this.writing) return;
     this.writing = true;
+    let attemptedDigest: string | undefined;
     try {
       const data = this.snapshot(),
         digest = sha256(data);
       if (!data.companies.length || digest === this.digest) return;
+      attemptedDigest = digest;
       const savedAt = new Date().toISOString();
       const result = await this.commit(
         { ...data, checkpoint: { writerId: this.writerId, savedAt } },
@@ -263,6 +265,32 @@ export class GitLabBackup {
     } catch {
       this.error =
         "Encrypted state checkpoint failed. Export evidence and inspect the backup branch; do not run multiple writers.";
+      // A successful commit can lose its HTTP acknowledgement. Reconcile only
+      // this process's authenticated checkpoint; never reclaim another writer
+      // or repeat the mutation. A newer local snapshot is saved next interval.
+      try {
+        const file = await this.api(
+          `projects/${encodeURIComponent(this.projectId)}/repository/files/${encodeURIComponent(this.path)}?ref=${this.branch}`,
+        );
+        const current = openSnapshot(
+          Buffer.from(file.content, "base64").toString(),
+          this.secret,
+        );
+        if (
+          current.schema === "maya-private-state-v2" &&
+          current.checkpoint?.writerId === this.writerId &&
+          file.last_commit_id
+        ) {
+          const { checkpoint, ...data } = current;
+          this.lastCommit = file.last_commit_id;
+          this.exists = true;
+          this.digest = sha256(data);
+          this.lastSavedAt = checkpoint.savedAt;
+          if (this.digest === attemptedDigest) this.error = undefined;
+        }
+      } catch {
+        // Keep the failure visible until remote ownership can be confirmed.
+      }
     } finally {
       this.writing = false;
     }

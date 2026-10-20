@@ -8,19 +8,19 @@ The follow-up retest added durable authorization before repair, atomic live faul
 
 Mobile navigation and the collapsed new-company button now retain explicit accessible labels; the browser walkthrough exercises all five mobile views and reopening onboarding. Browser coverage now includes three MAYA journeys, Company A's booking journey and two connected journeys. The added proxy-error journey checks that an HTML 502 is readable and never repeats the write. The added connected journey replaces a fault with the same kind while approval is pending: stale approval is refused, a fresh investigation preserves that replacement fault's identity, and newly approved recovery succeeds. The standalone company images are pinned to compatible commit tags in `deploy/compose.yaml`; deliberate overrides use `COMPANY_A_IMAGE` and `COMPANY_B_IMAGE`.
 
-Permanent Render hosting and actual Duo execution remain unverified. On the follow-up, Brave's existing Render session became readable, but navigation continued returning stale page content; the latest attempt is blocked by the Mac lock screen. No cloud deployment is claimed.
+The three Render services are deployed and returned HTTP 200 with healthy status on 20 October 2026. MAYA Incident Review v1.0.0 is registered and enabled in the GitLab Showcase project. A successful Duo execution and authenticated Render recovery retest are still pending; these are separate from deployment health.
 
 ## Open the demo
 
-| Application | Local | Temporary public HTTPS preview |
+| Application | Local | Hosted Render demo |
 | --- | --- | --- |
-| MAYA operator console | http://localhost:4200 | https://debate-caught-johnston-fit.trycloudflare.com |
-| Company A — TypeScript booking SaaS | http://localhost:4100 | https://began-sandy-suggesting-beginners.trycloudflare.com |
-| Company B — Python support SaaS | http://localhost:4300 | https://bouquet-westminster-upper-modems.trycloudflare.com |
+| MAYA operator console | http://localhost:4200 | https://maya-yard-jassi.onrender.com |
+| Company A — TypeScript booking SaaS | http://localhost:4100 | https://maya-company-a-jassi.onrender.com |
+| Company B — Python support SaaS | http://localhost:4300 | https://maya-company-b-jassi.onrender.com |
 
-MAYA asks for the operator key. On the original Mac, open the private `.env` in the parent `transcent hackathon` directory and use its `MAYA_ACCESS_TOKEN` value. The key is deliberately absent from source control and this document. Public company data is fictional demo data. Connector keys remain on the server.
+MAYA asks for the operator key. For Render, use the generated `MAYA_ACCESS_TOKEN` from MAYA's Render Environment settings. For localhost, use that variable from the private `.env` in the parent workspace. These deployments have different keys. Keys are deliberately absent from source control and this document. Public company data is fictional demo data. Connector keys remain on the server.
 
-The previews are temporary Cloudflare tunnels into the Mac. They work only while the Mac, Docker, network and tunnel processes remain available. They are not permanent cloud deployments. `artifacts/preview-urls.json` in the original parent workspace records these URLs; tunnel logs and PIDs are there too. No system startup service was installed.
+The Render URLs run independently of the Mac. The earlier Cloudflare tunnels are temporary, historical previews; their records remain in the parent workspace. `artifacts/render-health.json` records the hosted health checks. These checks establish reachability and health, not authenticated recovery or an exact deployed source revision.
 
 ## Source and delivery
 
@@ -72,17 +72,15 @@ The current local databases retain genuine test history. Counts reflect those re
 
 ### Permanent Render hosting
 
-The existing Render account was opened successfully through GitHub login, but no web services were created before the Mac locked. Desktop control then returned “The Mac is locked and automatic unlock could not unlock it.” There was no configured Render API credential to continue without the browser.
-
-When desktop access is available, open [Deploy the blueprint](https://render.com/deploy?repo=https://github.com/Jassi2004/transcend-maya), choose the existing workspace and review `render.yaml`. It defines three free Singapore web services and generated keys. Inspect the assigned service URLs; if Render changes the requested names, update MAYA's `COMPANY_A_URL` and `COMPANY_B_URL` accordingly. Sign in using MAYA's generated `MAYA_ACCESS_TOKEN` in Render Environment. Repeat the connected browser test against the final URLs.
+The `maya-transcend-demo` blueprint contains all three services in Jaskirat Singh's workspace. Their public health endpoints are verified. The current deployed commits and authenticated cloud recovery journeys still need verification. Sign in using MAYA's generated `MAYA_ACCESS_TOKEN` from Render Environment, then repeat the connected browser test against the final URLs.
 
 Free Render services sleep and have ephemeral filesystems. Their SQLite records may reset on restart or deployment. The blueprint is suitable for synthetic demonstrations. Persistent cloud storage requires a disk/database decision; the current local Docker volumes are durable.
 
 ### Actual GitLab Duo execution — essential for the hackathon
 
-MAYA's workers currently use deterministic recipes. The committed `.gitlab/duo/flows/incident-review.yml` is a read-only supervisor/investigator/verifier source bundle, and each run exports a JSON handoff. **No saved/enabled custom flow or successful Duo runner session has been verified.** Basic Duo access seen earlier is not that proof.
+MAYA's workers currently use deterministic recipes. The committed `.gitlab/duo/flows/incident-review.yml` is a read-only supervisor/investigator/verifier source bundle, and each run exports a JSON handoff. [MAYA Incident Review v1.0.0](https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43459489/showcase/-/automate/flows/1018799) is registered and enabled. Its service account is `@ai-maya-incident-review-gitlab-ai-hackathon`, with Developer access to Showcase. GitLab reports an available Duo runner. **A successful session is still required before claiming live Duo execution.**
 
-Next steps: mirror the MIT source into the provisioned public GitLab project; register and enable the flow in **AI → Flows**; confirm runner, service identity and credits; run the review against `docs/examples/company-a-duo-handoff.json`; retain its actual result and execution link. Then replace the appropriate deterministic investigation step with the verified Duo interaction. Programmatic launching and secure external gateway access still need platform validation. Do not assume ordinary CI/CD secrets are injected into Duo jobs.
+Next steps: mirror the MIT source into the provisioned public GitLab project; run the review against `docs/examples/company-a-duo-handoff.json`; retain its actual result and execution link. Then replace the appropriate deterministic investigation step with the verified Duo interaction. Programmatic launching and secure external gateway access still need platform validation. Do not assume ordinary CI/CD secrets are injected into Duo jobs.
 
 Provisioned project: https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43459489/showcase
 

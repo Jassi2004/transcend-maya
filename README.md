@@ -43,7 +43,7 @@ Repair authorization is saved before the network request. Each live fault has an
 | Fixture contracts and live post-repair verification | Working |
 | Scoped memory, review, versioning, expiry, stale-runtime rejection | Working |
 | GitHub Actions CI, cross-stack browser checks, and commit-tagged GHCR delivery | Working; see Actions and delivery evidence |
-| GitLab Duo supervisor/specialist flow | YAML bundle; registration/execution not verified |
+| GitLab Duo supervisor/specialist flow | v1.0.0 registered and enabled; successful execution pending |
 | GitHub/GitLab merge requests, arbitrary CI repair, vendor monitoring | Not implemented |
 | Continuous autonomous monitoring or production healing | Not implemented |
 
@@ -71,11 +71,13 @@ If the database was first started without Company A's connector, its seeded work
 
 `render.yaml` defines three free web services and generates connector/access secrets through Render. No payment is required by this blueprint. Free services sleep when idle; warm them before a demo. Their filesystem is ephemeral: **SQLite may reset on restarts/redeploys**. For durable shared hosting, add persistent disks or a managed database after choosing a budget. The local Docker deployment already uses persistent volumes.
 
+Hosted demos: [MAYA](https://maya-yard-jassi.onrender.com), [Company A](https://maya-company-a-jassi.onrender.com), [Company B](https://maya-company-b-jassi.onrender.com). Their health endpoints are verified; authenticated cloud recovery testing is pending.
+
 The operator key is `MAYA_ACCESS_TOKEN` in MAYA's Render Environment settings. A free deployment is suitable for synthetic demo data, not customer production use. Current deployment links and verification evidence belong in `docs/DELIVERY.md`.
 
 ## GitLab Duo
 
-`.gitlab/duo/flows/incident-review.yml` defines a supervisor, investigator and verifier. Register it in **AI → Flows**, enable it for the provisioned project, and perform a real run against an exported handoff. Committing the YAML alone does not activate it. This initial flow is read-only and cannot approve or deploy. The local simulator is intentionally not relabeled as Duo.
+`.gitlab/duo/flows/incident-review.yml` defines a supervisor, investigator and verifier. [MAYA Incident Review v1.0.0](https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43459489/showcase/-/automate/flows/1018799) is registered and enabled for Showcase; an actual successful run against an exported handoff is still pending. Committing the YAML alone does not activate it. This initial flow is read-only and cannot approve or deploy. The local simulator is intentionally not relabeled as Duo.
 
 Next platform gates: a successful runner session, credit/identity confirmation, scoped gateway authentication, and supported programmatic launch. Normal GitLab CI secrets must not be assumed available to Duo jobs. See `docs/ARCHITECTURE.md`.
 

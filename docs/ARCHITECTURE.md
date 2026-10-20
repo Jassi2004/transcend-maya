@@ -15,7 +15,7 @@ flowchart LR
   R --> H{Separate operator review}
   H --> M
   API --> P[Duo evidence handoff JSON]
-  P -. registration and runner proof needed .-> D[GitLab Duo read-only review flow]
+  P -. enabled; execution proof pending .-> D[GitLab Duo read-only review flow]
 ```
 
 ## State and trust
@@ -42,7 +42,7 @@ MAYA's npm tarball contains the built server/client, CLI, docs and Duo YAML. The
 
 ## GitLab platform gates
 
-The read-only flow bundle uses `AgentComponent.subagents` defined in the same YAML. It must be registered and enabled in GitLab. Service identity, runner availability and credits still require a real successful session. Its source is not evidence of execution. The simulator's approvals do not automatically become `HumanInputComponent` approvals in GitLab.
+The read-only flow bundle uses `AgentComponent.subagents` defined in the same YAML. It is registered and enabled in GitLab as MAYA Incident Review v1.0.0. The flow service account has Developer access to Showcase, and GitLab reports an available runner. Runtime execution and credits still require a real successful session. Its source is not evidence of execution. The simulator's approvals do not automatically become `HumanInputComponent` approvals in GitLab.
 
 Custom-flow API launch, external MCP configuration, and scoped gateway authentication need a platform proof before any claim of autonomous Duo operation. Normal custom CI/CD variables are not assumed available to Duo flow jobs. No private provider token is embedded in the flow bundle.
 

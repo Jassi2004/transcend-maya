@@ -7,11 +7,13 @@ components:
     type: AgentComponent
     description: Independently investigate incident evidence and identify uncertainty.
     prompt_id: investigate
+    inputs: ["context:goal"]
     toolset: [read_file, list_dir]
   - name: verifier
     type: AgentComponent
     description: Inspect tests and verify the scope of recovery and memory claims.
     prompt_id: verify
+    inputs: ["context:goal"]
     toolset: [read_file, list_dir]
   - name: supervisor
     type: AgentComponent
@@ -21,7 +23,6 @@ components:
       - name: investigator
       - name: verifier
     max_delegations: 4
-    max_cycles: 10
     toolset: [read_file, list_dir]
     ui_log_events: [on_agent_final_answer, on_tool_execution_success, on_tool_execution_failed]
 prompts:

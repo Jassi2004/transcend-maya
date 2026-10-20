@@ -724,7 +724,7 @@ export class Operations {
             incidentId,
             kind: "log",
             name: log.name,
-            content: log.content.slice(-20_000),
+            content: log.content.slice(-8_000),
             sourceUrl: incident.sourceUrl,
             commitSha: sourceSha,
           });
@@ -745,7 +745,7 @@ export class Operations {
       );
       const sources: SourceFile[] = [];
       let budget =
-        120_000 - allEvidence.reduce((total, e) => total + e.content.length, 0);
+        36_000 - allEvidence.reduce((total, e) => total + e.content.length, 0);
       for (const file of sourcePaths) {
         try {
           const source = await github.file(repo.fullName, file.path, sourceSha);
@@ -820,6 +820,10 @@ export class Operations {
         incident.status = "unknown";
         incident.error = task.error;
         this.db.save("incident", incident);
+      } else if (task.state === "failed") {
+        incident.status = "needs_input";
+        incident.error = task.error;
+        this.db.save("incident", incident);
       }
       return incident;
     } catch (error) {
@@ -837,6 +841,62 @@ export class Operations {
     } finally {
       this.investigating.delete(incidentId);
     }
+  }
+  async reconcileTaskLaunch(
+    companyId: string,
+    taskId: string,
+    allowNewInvestigation: boolean,
+    reason: string,
+  ) {
+    if (!this.options.workforce)
+      throw new DomainError(503, "GitLab Duo workforce is not configured.");
+    const task = this.db.get<AgentTask>("task", companyId, taskId);
+    const incident = this.db.get<OpsIncident>(
+      "incident",
+      companyId,
+      task.incidentId,
+    );
+    if (
+      incident.taskId !== taskId ||
+      incident.status !== "unknown" ||
+      task.purpose !== "investigate"
+    )
+      throw new DomainError(
+        409,
+        "This is not the incident's unconfirmed investigation launch.",
+      );
+    const reconciled = await this.options.workforce.reconcileLaunch(
+      task,
+      allowNewInvestigation,
+    );
+    if (reconciled.sessionId) {
+      incident.status = "investigating";
+      incident.error = undefined;
+      this.step(
+        incident,
+        "orchestrator",
+        "Existing Duo session reconciled",
+        `Matched the frozen evidence digest to session ${reconciled.sessionId}. No new launch was requested.`,
+      );
+    } else if (reconciled.state === "failed") {
+      incident.status = "needs_input";
+      incident.error = reconciled.error;
+      this.step(
+        incident,
+        "operator",
+        "Unconfirmed launch released after provider inspection",
+        reason,
+        [],
+        "blocked",
+      );
+    }
+    this.db.store.audit(companyId, "workforce.launch_reconciled", reason, {
+      taskId,
+      sessionId: reconciled.sessionId,
+      allowNewInvestigation,
+      state: reconciled.state,
+    });
+    return reconciled;
   }
   async refreshTask(companyId: string, taskId: string) {
     if (this.refreshingTasks.has(taskId))
@@ -1609,7 +1669,15 @@ export class Operations {
         content: JSON.stringify(
           {
             provider: repo.provider,
-            mergeRequest: remote,
+            mergeRequest: {
+              number: remote.number,
+              url: remote.html_url,
+              merged: remote.merged,
+              head: { ref: remote.head.ref, sha: remote.head.sha },
+              base: { ref: remote.base.ref, sha: remote.base.sha },
+              merge_commit_sha: remote.merge_commit_sha,
+              merged_at: remote.merged_at,
+            },
             originalCommit: incident.commitSha,
             repairCommit: incident.publication!.commitSha,
             mergedCommit: incident.merge!.sha,
@@ -1630,7 +1698,17 @@ export class Operations {
         const key = `${file.kind}:${file.name}:${file.commitSha || ""}`;
         if (!newest.has(key)) newest.set(key, file);
       }
-      const evidence = [...newest.values()];
+      const changedPaths = new Set(incident.plan?.files.map((f) => f.path));
+      const evidence = [...newest.values()].filter(
+        (file) =>
+          file.kind !== "source" ||
+          ((file.commitSha === incident.commitSha ||
+            file.commitSha === incident.planBaseSha) &&
+            (changedPaths.has(file.name) ||
+              /(?:^|\/)(?:test|tests|__tests__)\/|\.test\.|\.spec\./.test(
+                file.name,
+              ))),
+      );
       const task = await this.options.workforce.start(
         repo,
         incident,

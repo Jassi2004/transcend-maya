@@ -804,6 +804,15 @@ export default function OperationsApp() {
                                 post(`/tasks/${task.id}/refresh`),
                               )
                             }
+                            reconcileLaunch={(allowNewInvestigation, reason) =>
+                              task &&
+                              action("reconcile-launch", () =>
+                                post(`/tasks/${task.id}/reconcile-launch`, {
+                                  allowNewInvestigation,
+                                  reason,
+                                }),
+                              )
+                            }
                             viewChanges={() => setInspector({ changes: true })}
                           />
                           {incident.error && (
@@ -1395,6 +1404,7 @@ function NextAction({
   sharing,
   act,
   refreshTask,
+  reconcileLaunch,
   viewChanges,
 }: {
   incident: OpsIncident;
@@ -1403,6 +1413,7 @@ function NextAction({
   sharing: boolean;
   act: (name: string, body?: unknown, message?: string) => void;
   refreshTask: () => void;
+  reconcileLaunch: (allowNewInvestigation: boolean, reason: string) => void;
   viewChanges: () => void;
 }) {
   const [reason, setReason] = useState("");
@@ -1473,6 +1484,22 @@ function NextAction({
             <RefreshCw size={15} /> Refresh Duo session
           </button>
         )}
+        {incident.status === "unknown" &&
+          task?.state === "unknown" &&
+          !task.sessionId && (
+            <button
+              className="op-button"
+              disabled={busy}
+              onClick={() =>
+                reconcileLaunch(
+                  false,
+                  "Look up the frozen evidence digest in GitLab before any new launch.",
+                )
+              }
+            >
+              <RefreshCw size={15} /> Find existing Duo session
+            </button>
+          )}
         {incident.publication?.prNumber && (
           <button
             className="op-button"
@@ -1507,6 +1534,34 @@ function NextAction({
           </button>
         )}
       </div>
+      {incident.status === "unknown" &&
+        task?.state === "unknown" &&
+        !task.sessionId && (
+          <div className="op-approval">
+            <p>
+              A session search is repeated before releasing this launch. An
+              empty search alone does not prove the original request was
+              rejected. Inspect GitLab and explain the evidence for allowing
+              another investigation. This action retains the old attempt and
+              does not launch a new session.
+            </p>
+            <label>
+              Launch recovery decision
+              <textarea
+                value={reason}
+                placeholder="Explain what you checked in GitLab…"
+                onChange={(event) => setReason(event.target.value)}
+              />
+            </label>
+            <button
+              className="op-button"
+              disabled={busy || reason.trim().length < 3}
+              onClick={() => reconcileLaunch(true, reason)}
+            >
+              Record decision & allow fresh investigation
+            </button>
+          </div>
+        )}
       {(incident.status === "awaiting_approval" ||
         (incident.status === "pr_open" &&
           incident.checks?.state === "passing" &&

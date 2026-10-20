@@ -144,6 +144,20 @@ export function registerOperationsRoutes(
     empty.parse(req.body);
     res.json(await ops.refreshTask(scope(req), recordId(req)));
   });
+  app.post(`${base}/tasks/:id/reconcile-launch`, async (req, res) => {
+    const input = z
+      .object({ allowNewInvestigation: z.boolean().default(false), reason })
+      .strict()
+      .parse(req.body);
+    res.json(
+      await ops.reconcileTaskLaunch(
+        scope(req),
+        recordId(req),
+        input.allowNewInvestigation,
+        input.reason,
+      ),
+    );
+  });
   app.post(`${base}/incidents/:id/publish`, async (req, res) => {
     const input = z
       .object({ digest: z.string().length(64), reason })

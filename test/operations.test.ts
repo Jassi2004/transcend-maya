@@ -360,6 +360,118 @@ async function proposed(s: ReturnType<typeof setup>) {
   };
 }
 
+test("GitLab launch limits are enforced locally and definitive HTTP rejection is not an uncertain launch", async () => {
+  const s = setup();
+  try {
+    const repo = await onboard(s);
+    await s.ops.observe("alpha");
+    const incident = s.db.list<OpsIncident>("incident", "alpha")[0];
+    const evidence = s.db.evidence({
+      companyId: "alpha",
+      projectId: repo.id,
+      incidentId: incident.id,
+      kind: "log",
+      name: "large.log",
+      content: "x".repeat(60_000),
+    });
+    await assert.rejects(
+      () => s.workforce.start(repo, incident, [evidence], []),
+      /launch prompt limit/,
+    );
+    assert.equal(s.counts.launches, 0);
+    assert.equal(s.db.list("task", "alpha").length, 0);
+    const rejecting = new Workforce(
+      s.db,
+      { projectId: "123", projectPath: "demo/maya", consumerId: "456" },
+      async () => {
+        throw new Error("GitLab request failed (HTTP 422).");
+      },
+    );
+    const rejected = await rejecting.start(repo, incident, [], []);
+    assert.equal(rejected.state, "failed");
+    assert.match(rejected.error!, /HTTP 422/);
+    const uncertain = new Workforce(
+      s.db,
+      { projectId: "123", projectPath: "demo/maya", consumerId: "456" },
+      async () => {
+        throw new DOMException("timeout", "TimeoutError");
+      },
+    );
+    assert.equal(
+      (await uncertain.start(repo, incident, [], [])).state,
+      "unknown",
+    );
+  } finally {
+    s.store.db.close();
+  }
+});
+
+test("unconfirmed Duo launches reconcile by exact evidence digest without another launch and require an explicit delayed recovery decision", async () => {
+  const s = setup();
+  try {
+    let nodes: any[] = [];
+    let searches = 0;
+    const workforce = new Workforce(
+      s.db,
+      { projectId: "123", projectPath: "demo/maya", consumerId: "456" },
+      async (path, body: any) => {
+        assert.equal(
+          path,
+          "graphql",
+          "Reconciliation must not call the launch endpoint",
+        );
+        assert.equal(body.variables.search, "a".repeat(64));
+        searches++;
+        return { data: { duoWorkflowWorkflows: { nodes } } };
+      },
+    );
+    const original = {
+      id: "uncertain",
+      companyId: "alpha",
+      projectId: "repo",
+      incidentId: "incident",
+      purpose: "investigate",
+      state: "unknown",
+      evidenceDigest: "a".repeat(64),
+      evidenceIds: [],
+      messages: [],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    } as AgentTask;
+    s.db.save("task", original);
+    const missing = await workforce.reconcileLaunch({ ...original }, false);
+    assert.equal(missing.state, "unknown");
+    await assert.rejects(
+      () => workforce.reconcileLaunch({ ...original }, true),
+      /two minutes/,
+    );
+    nodes = [
+      {
+        id: "gid://gitlab/Ai::DuoWorkflows::Workflow/999",
+        goal: `The evidence SHA-256 is ${original.evidenceDigest}.`,
+        status: "RUNNING",
+      },
+    ];
+    const recovered = await workforce.reconcileLaunch({ ...original }, false);
+    assert.equal(recovered.sessionId, "999");
+    assert.equal(recovered.state, "running");
+    await assert.rejects(
+      () => workforce.reconcileLaunch({ ...original }, true),
+      /state changed/,
+    );
+    nodes = [];
+    original.createdAt = new Date(Date.now() - 180_000).toISOString();
+    s.db.save("task", original);
+    const released = await workforce.reconcileLaunch({ ...original }, true);
+    assert.equal(released.state, "failed");
+    assert.equal(released.sessionId, undefined);
+    assert.ok(searches >= 4);
+    assert.equal(s.counts.launches, 0);
+  } finally {
+    s.store.db.close();
+  }
+});
+
 test("repository discovery reads real configuration, retains env names only and starts without write authorisation", async () => {
   const s = setup();
   try {

@@ -1,3 +1,21 @@
+# MAYA has moved to GitLab
+
+The active MAYA source, merge requests, CI, package artifacts, container images
+and GitLab Duo workforce now live at:
+
+**https://gitlab.com/gitlab-ai-hackathon/transcend-october-2026/43459489/showcase**
+
+Render deploys MAYA from GitLab. This GitHub repository is archived to preserve
+commit history and links from earlier test and delivery receipts.
+Please use GitLab for all future MAYA changes.
+
+Signal Desk (`transcend-company-b`) is a separate demo company and stays on
+GitHub. It is not a second copy of MAYA.
+
+---
+
+The README below records the previous GitHub-based setup for historical context.
+
 # MAYA · Delivery workforce
 
 **Push code. MAYA investigates failed CI, proposes a source repair through GitLab Duo, opens a repair MR, follows its actual checks and verifies the exact revision deployed to staging. Reviewed company lessons guide later investigations.**
